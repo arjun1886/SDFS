@@ -1,0 +1,19 @@
+syntax = "proto3";
+package worker;
+
+option go_package = "./worker";
+
+message WorkerInput {
+    string data = 1;
+    string flag = 2;
+    string logFileName = 3;
+}
+
+message WorkerOutput {
+    string fileName = 1;
+    string  matches = 2;
+}
+
+service WorkerService {
+  rpc FetchWorkerOutput(WorkerInput) returns (WorkerOutput) {}
+}
