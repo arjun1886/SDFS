@@ -72,22 +72,3 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 
 	return workerOutputs, nil
 }
-
-func FetchWorkerOutputUtil(ctx context.Context, workerInput *worker.WorkerInput, workerConfig conf.WorkerConfig, workerOutputChan chan worker.WorkerOutput) {
-	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure())
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-
-	w := worker.NewWorkerServiceClient(conn)
-	workerInput.LogFileName = workerConfig.LogFileName
-	// take input from user to a list of args
-	workerOutput, err := w.FetchWorkerOutput(ctx, workerInput)
-	if err != nil {
-		return
-	}
-	workerOutputChan <- *workerOutput
-	return
-}
