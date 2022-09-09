@@ -14,7 +14,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 9001))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	w := worker.Worker{}
@@ -24,6 +24,6 @@ func main() {
 	worker.RegisterWorkerServiceServer(grpcServer, &w)
 
 	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %s", err)
+		log.Fatalf("Failed to serve: %s", err)
 	}
 }

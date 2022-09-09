@@ -49,7 +49,8 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 			var conn *grpc.ClientConn
 			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure())
 			if err != nil {
-
+				//log.Printf("Failed to connect to server %d: %s", i, err)
+				//return
 			}
 			defer conn.Close()
 			w := worker.NewWorkerServiceClient(conn)
@@ -57,13 +58,14 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 			// take input from user to a list of args
 			workerOutput, err := w.FetchWorkerOutput(ctx, workerInput)
 			if err != nil {
-
+				//log.Printf("Error fetching input from server %d: %s", i, err)
+				//return
 			}
 			workerOutputChan <- *workerOutput
 		}(ctx, workerInput, workerConfigs[i], workerOutputChan)
 		workerOutputs = append(workerOutputs, <-workerOutputChan)
 	}
-	// Wait for `wg.Done()` to be exectued the number of times
+	// Wait for `wg.Done()` to be executed the number of times
 	//   specified in the `wg.Add()` call.
 	// `wg.Done()` should be called the exact number of times
 	//   that was specified in `wg.Add()`.
