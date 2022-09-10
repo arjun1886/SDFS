@@ -4,6 +4,7 @@ import (
 	"CS425/cs-425-mp1/src/conf"
 	"CS425/cs-425-mp1/src/worker"
 	context "context"
+	"fmt"
 	sync "sync"
 
 	grpc "google.golang.org/grpc"
@@ -47,20 +48,23 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 			//   that another thread has completed.
 			defer wg.Done()
 			var conn *grpc.ClientConn
+			workerOutput := &worker.WorkerOutput{}
 			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure())
 			if err != nil {
-				//log.Printf("Failed to connect to server %d: %s", i, err)
-				//return
+				workerOutput.FileName = workerInput.LogFileName
+				workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i, err)
+			} else {
+				w := worker.NewWorkerServiceClient(conn)
+				workerInput.LogFileName = workerConfig.LogFileName
+				// take input from user to a list of args
+				workerOutput, err = w.FetchWorkerOutput(ctx, workerInput)
+				if err != nil {
+					workerOutput = &worker.WorkerOutput{}
+					workerOutput.FileName = workerInput.LogFileName
+					workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i, err)
+				}
 			}
 			defer conn.Close()
-			w := worker.NewWorkerServiceClient(conn)
-			workerInput.LogFileName = workerConfig.LogFileName
-			// take input from user to a list of args
-			workerOutput, err := w.FetchWorkerOutput(ctx, workerInput)
-			if err != nil {
-				//log.Printf("Error fetching input from server %d: %s", i, err)
-				//return
-			}
 			workerOutputChan <- *workerOutput
 		}(ctx, workerInput, workerConfigs[i], workerOutputChan)
 		workerOutputs = append(workerOutputs, <-workerOutputChan)
