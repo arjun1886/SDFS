@@ -12,7 +12,7 @@ import (
 
 func main() {
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 9000))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 9004))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
