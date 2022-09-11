@@ -26,7 +26,10 @@ func FetchOutput(clientInputFlag string, clientInputString string, cc coordinato
 func PrintResults(coordinatorOutput coordinator.CoordinatorOutput, duration time.Duration) {
 	fmt.Printf("Time taken to fetch response: %d\n", duration)
 	fmt.Printf("Response from server:\n\n\t\tFile Name\t\tMatches\n")
-	fmt.Printf("Total successful matches: %s", coordinatorOutput.TotalMatchCount)
+	for i := 0; i < len(coordinatorOutput.FileName); i++ {
+		fmt.Printf("\t\t%s\t\t\t%s\n", coordinatorOutput.FileName[i], coordinatorOutput.Matches[i])
+	}
+	fmt.Printf("Total successful matches: %s\n", coordinatorOutput.TotalMatchCount)
 }
 
 func main() {
