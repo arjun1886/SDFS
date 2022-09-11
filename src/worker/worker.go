@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"log"
 	"os/exec"
 	"strings"
 )
@@ -16,8 +15,6 @@ func (w *Worker) FetchWorkerOutput(ctx context.Context, workerInput *WorkerInput
 	arg0 := workerInput.Flag
 	arg1 := workerInput.Data
 	arg2 := workerInput.LogFileName
-
-	log.Printf(arg0, arg1, arg2)
 
 	cmd := exec.Command(app, arg0, arg1, arg2)
 

@@ -50,7 +50,7 @@ func TestSomewhatFrequentPattern(t *testing.T) {
 
 	inputFlag := "-c"
 	inputString := "iPod; U;"
-	expectedOutput := []int{9348, 9018, 8823, 9161, 9070, 8934, 9006, 9033, 8996, 9012}
+	expectedOutput := []int{9348, 9018, 8823, 9161, 9070, 8934, 9006, 9033, 8997, 9012}
 
 	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
 
