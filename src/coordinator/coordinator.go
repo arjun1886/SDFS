@@ -6,6 +6,7 @@ import (
 	context "context"
 	"fmt"
 	sync "sync"
+	"time"
 
 	grpc "google.golang.org/grpc"
 )
@@ -49,11 +50,12 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			workerOutput := &worker.WorkerOutput{}
-			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure())
+			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(250)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
 				workerOutput.FileName = workerInput.LogFileName
 				workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i, err)
 			} else {
+				defer conn.Close()
 				w := worker.NewWorkerServiceClient(conn)
 				workerInput.LogFileName = workerConfig.LogFileName
 				// take input from user to a list of args
@@ -61,10 +63,9 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 				if err != nil {
 					workerOutput = &worker.WorkerOutput{}
 					workerOutput.FileName = workerInput.LogFileName
-					workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i, err)
+					workerOutput.Matches = fmt.Sprintf("Failed to fetch output from server %d: %s", i, err)
 				}
 			}
-			defer conn.Close()
 			workerOutputChan <- *workerOutput
 		}(ctx, workerInput, workerConfigs[i], workerOutputChan)
 		workerOutputs = append(workerOutputs, <-workerOutputChan)

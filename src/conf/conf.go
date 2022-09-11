@@ -1,6 +1,17 @@
 package conf
 
 var (
+	CoordinatorEndpoint1  string = "localhost:9003"
+	CoordinatorEndpoint2  string = "localhost:9004"
+	CoordinatorEndpoint3  string = "localhost:9003"
+	CoordinatorEndpoint4  string = "localhost:9004"
+	CoordinatorEndpoint5  string = "localhost:9003"
+	CoordinatorEndpoint6  string = "localhost:9004"
+	CoordinatorEndpoint7  string = "localhost:9003"
+	CoordinatorEndpoint8  string = "localhost:9004"
+	CoordinatorEndpoint9  string = "localhost:9004"
+	CoordinatorEndpoint10 string = "localhost:9004"
+
 	WorkerEndpoint1  string = "localhost:9001"
 	WorkerEndpoint2  string = "localhost:9002"
 	WorkerEndpoint3  string = ""
@@ -24,6 +35,10 @@ var (
 	LogFileName10 string = "machine.10.log"
 )
 
+type CoordinatorConfigs struct {
+	Endpoints []string
+}
+
 type WorkerConfig struct {
 	Endpoint    string
 	LogFileName string
@@ -39,6 +54,12 @@ func GetWorkerConfigs() []WorkerConfig {
 			Endpoint:    WorkerEndpoint2,
 			LogFileName: LogFileName1,
 		},
+	}
+}
+
+func GetCoordinatorConfigs() CoordinatorConfigs {
+	return CoordinatorConfigs{
+		Endpoints: []string{CoordinatorEndpoint1, CoordinatorEndpoint2},
 	}
 }
 
