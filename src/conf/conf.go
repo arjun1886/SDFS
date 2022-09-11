@@ -44,26 +44,13 @@ type WorkerConfig struct {
 	LogFileName string
 }
 
-func GetWorkerConfigs() []WorkerConfig {
-	return []WorkerConfig{
-		{
-			Endpoint:    WorkerEndpoint1,
-			LogFileName: LogFileName1,
-		},
-		{
-			Endpoint:    WorkerEndpoint2,
-			LogFileName: LogFileName1,
-		},
-	}
-}
-
 func GetCoordinatorConfigs() CoordinatorConfigs {
 	return CoordinatorConfigs{
-		Endpoints: []string{CoordinatorEndpoint1, CoordinatorEndpoint2},
+		Endpoints: []string{CoordinatorEndpoint1, CoordinatorEndpoint2, CoordinatorEndpoint3, CoordinatorEndpoint4, CoordinatorEndpoint5, CoordinatorEndpoint6, CoordinatorEndpoint7, CoordinatorEndpoint8, CoordinatorEndpoint9, CoordinatorEndpoint10},
 	}
 }
 
-/*func GetWorkerConfigs() []WorkerConfig {
+func GetWorkerConfigs() []WorkerConfig {
 	return []WorkerConfig{
 		{
 			Endpoint:    WorkerEndpoint1,
@@ -106,12 +93,4 @@ func GetCoordinatorConfigs() CoordinatorConfigs {
 			LogFileName: LogFileName10,
 		},
 	}
-}*/
-
-/*func GetLogFileNames() []string {
-	return []string{LogFileName1, LogFileName2, LogFileName3, LogFileName4, LogFileName5, LogFileName6, LogFileName7, LogFileName8, LogFileName9, LogFileName10}
-}*/
-
-/*func GetWorkerConfigs() []string {
-	return []string{WorkerEndpoint1, WorkerEndpoint2, WorkerEndpoint3, WorkerEndpoint4, WorkerEndpoint5, WorkerEndpoint6, WorkerEndpoint7, WorkerEndpoint8, WorkerEndpoint9, WorkerEndpoint10}
-}*/
+}
