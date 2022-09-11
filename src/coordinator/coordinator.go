@@ -5,6 +5,7 @@ import (
 	"CS425/cs-425-mp1/src/worker"
 	context "context"
 	"fmt"
+	"strconv"
 	sync "sync"
 	"time"
 
@@ -29,6 +30,14 @@ func (c *Coordinator) FetchCoordinatorOutput(ctx context.Context, coordinatorInp
 		fileNameList = append(fileNameList, workerOutputs[i].GetFileName())
 		matchesList = append(matchesList, workerOutputs[i].GetMatches())
 	}
+	totalMatches := 0
+	for _, matchesString := range matchesList {
+		matches, err := strconv.Atoi(matchesString)
+		if err == nil {
+			totalMatches += matches
+		}
+	}
+	coordinatorOutput.TotalMatchCount = strconv.Itoa(totalMatches)
 	coordinatorOutput.FileName = fileNameList
 	coordinatorOutput.Matches = matchesList
 	return &coordinatorOutput, nil

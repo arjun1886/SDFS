@@ -11,6 +11,7 @@ message CoordinatorInput {
 message CoordinatorOutput {
     repeated string fileName = 1;
     repeated string  matches = 2;
+    string totalMatchCount = 3;
 }
 
 service CoordinatorService {

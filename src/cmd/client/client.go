@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
@@ -25,20 +24,9 @@ func FetchOutput(clientInputFlag string, clientInputString string, cc coordinato
 }
 
 func PrintResults(coordinatorOutput coordinator.CoordinatorOutput, duration time.Duration) {
-	sum := 0
 	fmt.Printf("Time taken to fetch response: %d\n", duration)
 	fmt.Printf("Response from server:\n\n\t\tFile Name\t\tMatches\n")
-
-	for i := 0; i < len(coordinatorOutput.FileName); i++ {
-		fmt.Printf("\t\t%s\t\t\t%s\n", coordinatorOutput.FileName[i], coordinatorOutput.Matches[i])
-		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
-		if err != nil {
-			log.Printf("Error from server %d; calculating remaining sum.", i+1)
-		} else {
-			sum = sum + intVar
-		}
-	}
-	fmt.Printf("Total matches: %d\n", sum)
+	fmt.Printf("Total successful matches: %s", coordinatorOutput.TotalMatchCount)
 }
 
 func main() {
