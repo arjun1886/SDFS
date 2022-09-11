@@ -50,10 +50,10 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			workerOutput := &worker.WorkerOutput{}
-			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(250)*time.Millisecond), grpc.WithBlock())
+			conn, err := grpc.Dial(workerConfig.Endpoint, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
-				workerOutput.FileName = workerInput.LogFileName
-				workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i, err)
+				workerOutput.FileName = ""
+				workerOutput.Matches = fmt.Sprintf("Failed to connect to server %d: %s", i+1, err)
 			} else {
 				defer conn.Close()
 				w := worker.NewWorkerServiceClient(conn)
@@ -62,8 +62,8 @@ func FetchWorkerOutputs(ctx context.Context, workerInput *worker.WorkerInput) ([
 				workerOutput, err = w.FetchWorkerOutput(ctx, workerInput)
 				if err != nil {
 					workerOutput = &worker.WorkerOutput{}
-					workerOutput.FileName = workerInput.LogFileName
-					workerOutput.Matches = fmt.Sprintf("Failed to fetch output from server %d: %s", i, err)
+					workerOutput.FileName = ""
+					workerOutput.Matches = fmt.Sprintf("Failed to fetch output from server %d: %s", i+1, err)
 				}
 			}
 			workerOutputChan <- *workerOutput
