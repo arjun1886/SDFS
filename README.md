@@ -44,49 +44,132 @@ Use the built-in continuous integration in GitLab.
 
 ***
 
-# Editing this README
+# Distributed Log Querier
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Program to query distributed log files on multiple machines.
 
-## Name
-Choose a self-explaining name for your project.
+- Uses GRPCs to communicate between servers
+- Client, Coordinator & Worker Architecture
+- Produces results of grep -[E]c command
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## Tech
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Dillinger uses a number of open source projects to work properly:
+
+- [AngularJS] - HTML enhanced for web apps!
+- [Ace Editor] - awesome web-based text editor
+- [markdown-it] - Markdown parser done right. Fast and easy to extend.
+- [Twitter Bootstrap] - great UI boilerplate for modern web apps
+- [node.js] - evented I/O for the backend
+- [Express] - fast node.js network app framework [@tjholowaychuk]
+- [Gulp] - the streaming build system
+- [Breakdance](https://breakdance.github.io/breakdance/) - HTML
+to Markdown converter
+- [jQuery] - duh
+
+And of course Dillinger itself is open source with a [public repository][dill]
+ on GitHub.
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+This project requires installation of Go to run.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Install the dependencies and devDependencies and start the server.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```sh
+cd dillinger
+npm i
+node app
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+For production environments...
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```sh
+npm install --production
+NODE_ENV=production node app
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Plugins
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Dillinger is currently extended with the following plugins.
+Instructions on how to use them in your own application are linked below.
+
+| Plugin | README |
+| ------ | ------ |
+| Dropbox | [plugins/dropbox/README.md][PlDb] |
+| GitHub | [plugins/github/README.md][PlGh] |
+| Google Drive | [plugins/googledrive/README.md][PlGd] |
+| OneDrive | [plugins/onedrive/README.md][PlOd] |
+| Medium | [plugins/medium/README.md][PlMe] |
+| Google Analytics | [plugins/googleanalytics/README.md][PlGa] |
+
+## Testing
+
+
+Open Terminal and run these commands.
+
+To run worker (on all VMs):
+```sh
+cd cs-425-mp1/src/cmd/worker/
+```
+
+
+```sh
+./worker_server
+```
+
+To run coordinator (typically on VM2):
+
+```sh
+cd cs-425-mp1/src/cmd/coordinator/
+```
+
+
+```sh
+./coordinator_server
+```
+
+To run client (typically on VM1):
+
+```sh
+cd cs-425-mp1/src/cmd/client/
+```
+
+
+```sh
+./client grep -c "test pattern" .log
+```
+
+To run client tests:
+
+```sh
+cd cs-425-mp1/src/cmd/client/
+```
+```sh
+./client_tests
+```
+#### Building for source
+
+Generating executable from source code:
+
+```sh
+go build -o client
+```
+
+Running source file:
+
+```sh
+go run client.go grep -c "test pattern" .log
+```
+
+Running executable:
+```sh
+./client grep -c "test pattern" .log
+```
+
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+UIUC
