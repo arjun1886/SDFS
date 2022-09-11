@@ -21,7 +21,6 @@ func FetchOutput(clientInputFlag string, clientInputString string, cc coordinato
 		log.Printf("Error while querying distributed log querier through coordinator %d: %s", index+1, err)
 	}
 	duration = time.Since(start)
-	log.Printf("Duration: %d", duration)
 	return coordinatorOutput, duration
 }
 
@@ -31,7 +30,7 @@ func PrintResults(coordinatorOutput coordinator.CoordinatorOutput, duration time
 	fmt.Printf("Response from server:\n\t\t\tFile Name\t\tMatches\n")
 
 	for i := 0; i < len(coordinatorOutput.FileName); i++ {
-		log.Printf("%s\t\t%s\n", coordinatorOutput.FileName[i], coordinatorOutput.Matches[i])
+		fmt.Printf("%s\t\t%s\n", coordinatorOutput.FileName[i], coordinatorOutput.Matches[i])
 		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
 		if err != nil {
 			log.Printf("Error from server %d; calculating remaining sum.", i+1)

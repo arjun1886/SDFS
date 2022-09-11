@@ -3,6 +3,7 @@ package main
 import (
 	"CS425/cs-425-mp1/src/coordinator"
 	"google.golang.org/grpc"
+	"log"
 	"strconv"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func TestFrequentPattern(t *testing.T) {
 
 	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
 
-	t.Logf("Duration of TestFrequentPattern: %d", duration)
+	log.Printf("Duration of TestFrequentPattern: %d", duration)
 
 	for i := 0; i < len(coordinatorOutput.FileName); i++ {
 		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
@@ -35,7 +36,7 @@ func TestFrequentPattern(t *testing.T) {
 			t.Logf("Error converting matches to int")
 		} else {
 			if coordinatorOutput.FileName[i] != "" && intVar != expectedOutput[i] {
-				t.Errorf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
+				t.Fatalf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
 					intVar, expectedOutput[i])
 			}
 		}
@@ -53,7 +54,7 @@ func TestSomewhatFrequentPattern(t *testing.T) {
 
 	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
 
-	t.Logf("Duration of TestSomewhatFrequentPattern: %d", duration)
+	log.Printf("Duration of TestSomewhatFrequentPattern: %d", duration)
 
 	for i := 0; i < len(coordinatorOutput.FileName); i++ {
 		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
@@ -61,7 +62,7 @@ func TestSomewhatFrequentPattern(t *testing.T) {
 			t.Logf("Error converting matches to int")
 		} else {
 			if coordinatorOutput.FileName[i] != "" && intVar != expectedOutput[i] {
-				t.Errorf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
+				t.Fatalf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
 					intVar, expectedOutput[i])
 			}
 		}
@@ -79,7 +80,7 @@ func TestInfrequentPattern(t *testing.T) {
 
 	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
 
-	t.Logf("Duration of InfrequentPattern: %d", duration)
+	log.Printf("Duration of TestInfrequentPattern: %d", duration)
 
 	for i := 0; i < len(coordinatorOutput.FileName); i++ {
 		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
@@ -87,7 +88,59 @@ func TestInfrequentPattern(t *testing.T) {
 			t.Logf("Error converting matches to int")
 		} else {
 			if coordinatorOutput.FileName[i] != "" && intVar != expectedOutput[i] {
-				t.Errorf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
+				t.Fatalf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
+					intVar, expectedOutput[i])
+			}
+		}
+	}
+}
+
+func TestRegexPattern(t *testing.T) {
+
+	c, conn := establishConnection(t)
+	defer conn.Close()
+
+	inputFlag := "-Ec"
+	inputString := "Ap+le|Linux"
+	expectedOutput := []int{167943, 158574, 158953, 160474, 160538, 159126, 158859, 161943, 159587, 156940}
+
+	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
+
+	log.Printf("Duration of TestRegexPattern: %d", duration)
+
+	for i := 0; i < len(coordinatorOutput.FileName); i++ {
+		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
+		if err != nil {
+			t.Logf("Error converting matches to int")
+		} else {
+			if coordinatorOutput.FileName[i] != "" && intVar != expectedOutput[i] {
+				t.Fatalf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
+					intVar, expectedOutput[i])
+			}
+		}
+	}
+}
+
+func TestNonExistentPattern(t *testing.T) {
+
+	c, conn := establishConnection(t)
+	defer conn.Close()
+
+	inputFlag := "-c"
+	inputString := "Hi my name is Simrita"
+	expectedOutput := []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	coordinatorOutput, duration := FetchOutput(inputFlag, inputString, c, 1)
+
+	log.Printf("Duration of TestNonExistentPattern: %d", duration)
+
+	for i := 0; i < len(coordinatorOutput.FileName); i++ {
+		intVar, err := strconv.Atoi(coordinatorOutput.Matches[i])
+		if err != nil {
+			t.Logf("Error converting matches to int")
+		} else {
+			if coordinatorOutput.FileName[i] != "" && intVar != expectedOutput[i] {
+				t.Fatalf("Match of server %d was incorrect, got: %d, want: %d.", i+1,
 					intVar, expectedOutput[i])
 			}
 		}
