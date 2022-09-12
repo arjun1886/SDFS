@@ -75,7 +75,3 @@ cd cs-425-mp1/src/cmd/client/
 ```sh
 ./client_tests
 ```
-
-## License
-
-UIUC
