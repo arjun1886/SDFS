@@ -41,7 +41,7 @@ func main() {
 	clientInputFlag := os.Args[2]
 	clientInputString := os.Args[3]
 
-	// Loop over coordinator configs for fault handling
+	// Loop over coordinator configs for fault handling - Fetch output from the first available coordinator
 
 	for i := 0; i < len(coordinatorConfigs.Endpoints); i++ {
 		var conn *grpc.ClientConn
