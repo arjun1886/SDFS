@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// FetchOutput - Fetch the output from Coordinator Server
 func FetchOutput(clientInputFlag string, clientInputString string, cc coordinator.CoordinatorServiceClient, index int) (coordinatorOutput *coordinator.CoordinatorOutput, duration time.Duration) {
 	start := time.Now()
 	// take input from user to a list of args
@@ -36,7 +37,7 @@ func main() {
 
 	coordinatorConfigs := conf.GetCoordinatorConfigs()
 
-	// take input as grep -Ec arjun .log or as grep -c arjun .log
+	// take input as grep -Ec "<input>" .log or as grep -c "<input>" .log
 	clientInputFlag := os.Args[2]
 	clientInputString := os.Args[3]
 
@@ -48,6 +49,7 @@ func main() {
 		if err != nil {
 			log.Printf("Error connecting to coordinator %d: %s", i+1, err)
 		} else {
+			
 			defer conn.Close()
 			c := coordinator.NewCoordinatorServiceClient(conn)
 
