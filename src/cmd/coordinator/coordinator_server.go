@@ -17,6 +17,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+    // Initialize coordinator structure that implements service interface
 	c := coordinator.Coordinator{}
 
 	grpcServer := grpc.NewServer()
