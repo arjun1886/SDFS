@@ -17,6 +17,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+    // Initialize worker struct that implements worker service interface
 	w := worker.Worker{}
 
 	grpcServer := grpc.NewServer()
