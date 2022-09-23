@@ -4,21 +4,26 @@ import (
 	"CS425/cs-425-mp1/src/conf"
 	"os"
 	"strings"
+	"sync"
 )
 
 var Members []*conf.Member
 var IncarnationNumber int = 1
 var Self = os.Getenv("my_endpoint")
 
-func UpdateMembers(updatedMembers []*conf.Member) {
+// Mutex is safe to use concurrently.
+type Membership struct {
+	mu sync.Mutex
+}
+
+func (c *Membership) UpdateMembers(updatedMembers []*conf.Member) {
+	c.mu.Lock()
 	Members = updatedMembers
+	c.mu.Unlock()
 }
 
-func RespondToPing() []*conf.Member {
-	return GetMembers()
-}
-
-func GetMembers() []*conf.Member {
+func (c *Membership) GetMembers() []*conf.Member {
+	c.mu.Lock()
 	members := Members
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split(members[i].ProcessID, ":")[0]
@@ -26,6 +31,7 @@ func GetMembers() []*conf.Member {
 			members[i].IncarnationNumber += 1
 		}
 	}
+	c.mu.Unlock()
 	return members
 }
 
