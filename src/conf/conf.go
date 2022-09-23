@@ -33,6 +33,8 @@ var (
 	LogFileName8  string = "vm8.log"
 	LogFileName9  string = "vm9.log"
 	LogFileName10 string = "vm10.log"
+
+	IntroducerEndpoint string = ""
 )
 
 type CoordinatorConfigs struct {
@@ -42,6 +44,12 @@ type CoordinatorConfigs struct {
 type WorkerConfig struct {
 	Endpoint    string
 	LogFileName string
+}
+
+type Member struct {
+	IncarnationNumber int
+	State             string
+	ProcessID         string
 }
 
 func GetCoordinatorConfigs() CoordinatorConfigs {
