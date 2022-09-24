@@ -49,7 +49,7 @@ type WorkerConfig struct {
 type Member struct {
 	IncarnationNumber int
 	State             string
-	ProcessID         string
+	ProcessId         string
 }
 
 func GetCoordinatorConfigs() CoordinatorConfigs {

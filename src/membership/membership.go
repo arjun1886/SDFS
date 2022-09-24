@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-var Members []*conf.Member
+var Members *[]conf.Member
 var IncarnationNumber int = 1
 var Self = os.Getenv("my_endpoint")
 
@@ -16,36 +16,36 @@ type Membership struct {
 	mu sync.Mutex
 }
 
-func (c *Membership) UpdateMembers(responseMembershipList []*conf.Member) {
+func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	c.mu.Lock()
 	// members := Members
 	//flag = 1
 	// var selfEndpoint[] = {}
 	// var receivingEndpoint[]
-	for i := 0; i < len(Members); i++ {
-		// selfEndpoint = strings.Split(members[i].ProcessID, ":")
+	for i := 0; i < len(*Members); i++ {
+		// selfEndpoint = strings.Split((*Members)[i].ProcessID, ":")
 		/*if flag == 0 {
 			flag = 1
 			continue
 		}*/
-		for j := 0; j < len(responseMembershipList); j++ {
+		for j := 0; j < len(*responseMembershipList)[i]); j++ {
 			// receivingEndpoint = strings.Split(members[j].ProcessID, ":")
-			if Members[i] == responseMembershipList[j] {
+			if (*Members)[i] == (*responseMembershipList)[i])[j] {
 				//flag = 0
 				break
 			}
-			if Members[i].ProcessId != responseMembershipList[j].ProcessId {
+			if (*Members)[i].ProcessId != (*responseMembershipList)[i][j].ProcessId {
 				continue
 			} else {
-				if Members[i].IncarnationNumber > responseMembershipList[j].IncarnationNumber {
+				if (*Members)[i].IncarnationNumber > (*responseMembershipList)[i][j].IncarnationNumber {
 					break
-				} else if Members[i].IncarnationNumber < responseMembershipList[j].IncarnationNumber {
-					Members[i] = responseMembershipList[j] // does inc number also get updated here?
+				} else if (*Members)[i].IncarnationNumber < (*responseMembershipList)[i][j].IncarnationNumber {
+					(*Members)[i] = (*responseMembershipList)[i][j] // does inc number also get updated here?
 					//flag = 0
 					break
 				} else {
-					if Members[i].State == "FAILED" || responseMembershipList[j].State == "FAILED" {
-						Members[i].State = "FAILED"
+					if (*Members)[i].State == "FAILED" || (*responseMembershipList)[i][j].State == "FAILED" {
+						(*Members)[i].State = "FAILED"
 					}
 				}
 			}
@@ -53,18 +53,18 @@ func (c *Membership) UpdateMembers(responseMembershipList []*conf.Member) {
 
 	}
 
-	if len(responseMembershipList) > len(Members) {
+	if len((*responseMembershipList)[i]) > len(Members) {
 
-		for j := 0; j < len(responseMembershipList); j++ {
+		for j := 0; j < len((*responseMembershipList)[i]); j++ {
 			flag = 0
-			for i := 0; i < len(Members); i++ {
-				if Members[i].ProcessId == responseMembershipList[j].ProcessId {
+			for i := 0; i < len(*Members); i++ {
+				if (*Members)[i].ProcessId == (*responseMembershipList)[i][j].ProcessId {
 					flag = 1
 					break
 				}
 			}
 			if flag == 0 {
-				Members.append(responseMembershipList[j])
+				Members.append((*responseMembershipList)[i][j])
 			}
 		}
 	}
@@ -76,9 +76,9 @@ func (c *Membership) GetMembers() []*conf.Member {
 	c.mu.Lock()
 	members := Members
 	for i := 0; i < len(members); i++ {
-		endpoint := strings.Split(members[i].ProcessID, ":")[0]
+		endpoint := strings.Split((*Members)[i].ProcessID, ":")[0]
 		if endpoint == Self {
-			members[i].IncarnationNumber += 1
+			(*Members)[i].IncarnationNumber += 1
 		}
 	}
 	c.mu.Unlock()
@@ -90,7 +90,7 @@ func GetTargets() []string {
 	targetsMap := make(map[string]interface{})
 	targets := []string{}
 	for i := 0; i < len(members); i++ {
-		endpoint := strings.Split(members[i].ProcessID, ":")[0]
+		endpoint := strings.Split((*Members)[i].ProcessID, ":")[0]
 		if endpoint == Self {
 			if i == 0 {
 				targetsMap[members[len(members)-1].ProcessID] = nil
