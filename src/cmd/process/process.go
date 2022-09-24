@@ -38,19 +38,22 @@ func ping(targets []string) {
 		// receive message from server
 		buffer := make([]byte, 1024)
 		err = conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-		_, err = conn.Read(buffer)
+		n, err := conn.Read(buffer)
 		if err != nil {
+			fmt.Println("hiii")
 			membershipStruct := membership.Membership{}
 			membershipStruct.UpdateEntry(targets[i], "FAILED")
 			go membershipStruct.Cleanup(targets[i])
 			log.Println(err)
 		}
 		var members []conf.Member
-		json.Unmarshal(buffer, &members)
+		json.Unmarshal(buffer[:n], &members)
 		membershipStruct := membership.Membership{}
+		fmt.Println(members)
 		membershipStruct.UpdateMembers(&members)
 	}
 }
+
 func main() {
 
 	isPartOfNetwork := false
@@ -89,16 +92,19 @@ func main() {
 
 		reply := make([]byte, 1024)
 
-		_, err = conn.Read(reply)
+		n, err := conn.Read(reply)
 		if err != nil {
 			println("Write to server failed:", err.Error())
 			os.Exit(1)
 		}
 
-		err = json.Unmarshal(reply, membership.Members)
+		err = json.Unmarshal(reply[:n], membership.Members)
 		if err != nil {
 			log.Println(err)
 		}
+
+		fmt.Println(membership.Members)
+
 		conn.Close()
 	}
 
@@ -134,6 +140,7 @@ func handleUDPConnection(conn *net.UDPConn) {
 
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
+	fmt.Println(members)
 	membersByte, err := json.Marshal(members)
 	if err != nil {
 		fmt.Println()

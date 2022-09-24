@@ -40,7 +40,7 @@ func ping(targets []string) {
 		// receive message from server
 		buffer := make([]byte, 1024)
 		err = conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-		_, err = conn.Read(buffer)
+		n, err := conn.Read(buffer)
 		if err != nil {
 			membershipStruct := membership.Membership{}
 			membershipStruct.UpdateEntry(targets[i], "FAILED")
@@ -48,7 +48,7 @@ func ping(targets []string) {
 			log.Println(err)
 		}
 		var members []conf.Member
-		json.Unmarshal(buffer, &members)
+		json.Unmarshal(buffer[:n], &members)
 		membershipStruct := membership.Membership{}
 		membershipStruct.UpdateMembers(&members)
 	}
@@ -68,7 +68,7 @@ func main() {
 		IncarnationNumber: 1,
 	}
 	*membership.Members = append(*membership.Members, initMember)
-
+	go IntroducerServer()
 	go Server()
 
 	ticker := time.NewTicker(1000 * time.Millisecond)
@@ -88,8 +88,6 @@ func main() {
 }
 
 func handleUDPConnection(conn *net.UDPConn) {
-
-	// here is where you want to do stuff like read or write to client
 
 	buffer := make([]byte, 1024)
 
@@ -122,10 +120,7 @@ func handleTCPConnection(conn net.Conn) {
 	_, err := conn.Read(buffer)
 
 	var request string
-	err = json.Unmarshal(buffer, &request)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println(string(request))
 
 	hostName, err := os.Hostname()
 	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))
@@ -174,7 +169,7 @@ func IntroducerServer() {
 
 func Server() {
 	hostName := "localhost"
-	portNum := "8001"
+	portNum := "8003"
 	service := hostName + ":" + portNum
 
 	udpAddr, err := net.ResolveUDPAddr("udp4", service)
