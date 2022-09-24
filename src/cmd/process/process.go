@@ -1,163 +1,139 @@
 package main
 
 import (
+	"CS425/cs-425-mp1/src/membership"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
-	"strings"
-	"sync"
+	"time"
 )
 
+func ping(targets []string) {
+	for i := 0; i < len(targets); i++ {
+
+	}
+}
 func main() {
 
-	// CLIENT
+	go Server()
 
-	CONNECT := "localhost:8002"
-
-	s, err := net.ResolveUDPAddr("udp4", CONNECT)
-	c, err := net.DialUDP("udp4", nil, s)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Printf("The UDP client is %s\n", c.RemoteAddr().String())
-	defer c.Close()
-
-	//for {
-	text := "PING"
-	data := []byte(text + "\n")
-	_, err = c.Write(data)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	buffer := make([]byte, 1024)
-	n, _, err := c.ReadFromUDP(buffer)
-	if err != nil {
-		fmt.Println("Error here:", err)
-		//return
-	}
-	fmt.Println("Hello!!!")
-	fmt.Printf("Reply: %s\n", string(buffer[0:n]))
-	//}
-
-	// SERVER
-
-	//workerOutputChan := make([]byte, 1024)
-	var wg sync.WaitGroup
-	wg.Add(1)
-
+	ticker := time.NewTicker(1000 * time.Millisecond)
 	go func() {
-		/*hostname, error := os.Hostname()
-		if error != nil {
-			panic(error)
-		}
-		PORT := ":8002"*/
-		fmt.Printf("Entering go routine")
-
-		s, err := net.ResolveUDPAddr("udp4", "localhost:8002")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("The UDP server is %s\n", s)
-		connection, err := net.ListenUDP("udp4", s)
-		//fmt.Printf("The UDP server 2 is %s\n", connection.RemoteAddr().String())
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		defer connection.Close()
-		buffer := make([]byte, 1024)
-		//rand.Seed(time.Now().Unix())
-		fmt.Printf("connection is still active %s\n", connection)
 		for {
-			fmt.Printf("Entering for loop")
-			n, addr, err := connection.ReadFromUDP(buffer)
-			fmt.Printf("Read from UDP here")
-			fmt.Print("-> ", string(buffer[0:n-1]))
-
-			if strings.TrimSpace(string(buffer[0:n])) == "PING" {
-				fmt.Printf("True")
-				serverText := "PONG"
-				serverData := []byte(serverText + "\n")
-				fmt.Printf("data: %s\n", string(serverData))
-				_, err = connection.WriteToUDP(serverData, addr)
-				// write membership table
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
+			select {
+			case _ = <-ticker.C:
+				targets := membership.GetTargets()
+				ping(targets)
 			}
 		}
-		wg.Done()
 	}()
 
-	wg.Wait()
+	hostName := "localhost"
+	portNum := "6000"
+
+	service := hostName + ":" + portNum
+
+	RemoteAddr, err := net.ResolveUDPAddr("udp", service)
+
+	//LocalAddr := nil
+	// see https://golang.org/pkg/net/#DialUDP
+
+	conn, err := net.DialUDP("udp", nil, RemoteAddr)
+
+	// note : you can use net.ResolveUDPAddr for LocalAddr as well
+	//        for this tutorial simplicity sake, we will just use nil
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Established connection to %s \n", service)
+	log.Printf("Remote UDP address : %s \n", conn.RemoteAddr().String())
+	log.Printf("Local UDP client address : %s \n", conn.LocalAddr().String())
+
+	defer conn.Close()
+
+	// write a message to server
+	message := []byte("Hello UDP server!")
+
+	_, err = conn.Write(message)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	// receive message from server
+	buffer := make([]byte, 1024)
+	n, addr, err := conn.ReadFromUDP(buffer)
+
+	fmt.Println("UDP Server : ", addr)
+	fmt.Println("Received from UDP server : ", string(buffer[:n]))
+
+	select {}
 
 }
 
-/*func main() {
-	isPartOfNetwork := false
+func handleUDPConnection(conn *net.UDPConn) {
+
+	// here is where you want to do stuff like read or write to client
+
+	buffer := make([]byte, 1024)
+
+	n, addr, err := conn.ReadFromUDP(buffer)
+
+	fmt.Println("UDP client : ", addr)
+	fmt.Println("Received from UDP client :  ", string(buffer[:n]))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// NOTE : Need to specify client address in WriteToUDP() function
+	//        otherwise, you will get this error message
+	//        write udp : write: destination address required if you use Write() function instead of WriteToUDP()
+
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
-	for i := 0; i < len(members); i++ {
-		endpoint := strings.Split(members[i].ProcessID, ":")[0]
-		if endpoint == membership.Self {
-			isPartOfNetwork = true
-			break
-		}
+	membersByte, err := json.Marshal(members)
+	if err != nil {
+		fmt.Println()
+	}
+	// write message back to client
+	message := membersByte
+	_, err = conn.WriteToUDP(message, addr)
+
+	if err != nil {
+		log.Println(err)
 	}
 
-	workerOutputChan := make([]byte, 1024)
-		var wg sync.WaitGroup
-
-		for {
-
-			go func() {
-				hostname, error := os.Hostname()
-				if error != nil {
-					panic(error)
-				}
-				PORT := ":8001"
-
-				s, err := net.ResolveUDPAddr("udp4", PORT)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				connection, err := net.ListenUDP("udp4", s)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				defer connection.Close()
-				buffer := make([]byte, 1024)
-				rand.Seed(time.Now().Unix())
-
-				for {
-					n, addr, err := connection.ReadFromUDP(buffer)
-					fmt.Print("-> ", string(buffer[0:n-1]))
-
-					if strings.TrimSpace(string(buffer[0:n])) == "STOP" {
-						fmt.Println("Exiting UDP server!")
-						return
-					}
-
-					data := []byte(strconv.Itoa(random(1, 1001)))
-					fmt.Printf("data: %s\n", string(data))
-					_, err = connection.WriteToUDP(data, addr)
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
-				}
-			}
-		}
-	}
 }
-*/
+
+func Server() {
+	hostName := "localhost"
+	portNum := "6000"
+	service := hostName + ":" + portNum
+
+	udpAddr, err := net.ResolveUDPAddr("udp4", service)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// setup listener for incoming UDP connection
+	ln, err := net.ListenUDP("udp", udpAddr)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("UDP server up and listening on port 6000")
+
+	defer ln.Close()
+
+	for {
+		// wait for UDP client to connect
+		handleUDPConnection(ln)
+	}
+
+}
