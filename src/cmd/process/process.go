@@ -1,17 +1,52 @@
 package main
 
 import (
+	"CS425/cs-425-mp1/src/conf"
 	"CS425/cs-425-mp1/src/membership"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 )
 
 func ping(targets []string) {
 	for i := 0; i < len(targets); i++ {
+		hostName := strings.Split(targets[i], ":")[0]
+		portNum := "6000"
+		service := hostName + ":" + portNum
+		RemoteAddr, err := net.ResolveUDPAddr("udp", service)
+		conn, err := net.DialUDP("udp", nil, RemoteAddr)
 
+		// note : you can use net.ResolveUDPAddr for LocalAddr as well
+		//        for this tutorial simplicity sake, we will just use nil
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer conn.Close()
+
+		// write a message to server
+		message := []byte("PING")
+
+		_, err = conn.Write(message)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		// receive message from server
+		buffer := make([]byte, 1024)
+		_, _, err = conn.ReadFromUDP(buffer)
+		if err != nil {
+			log.Println(err)
+		}
+		var members []conf.Member
+		json.Unmarshal(buffer, &members)
+		membershipStruct := membership.Membership{}
+		membershipStruct.UpdateMembers(&members)
 	}
 }
 func main() {
