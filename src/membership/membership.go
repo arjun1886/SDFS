@@ -44,7 +44,7 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 					//flag = 0
 					break
 				} else {
-					if (*Members)[i].State == "FAILED" || (*responseMembershipList)[j].State == "FAILED" {
+					if (*Members)[i].State == "ACTIVE" && (*responseMembershipList)[j].State == "FAILED" {
 						(*Members)[i].State = "FAILED"
 					}
 				}
@@ -66,6 +66,26 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 			if flag == 0 {
 				*Members = append(*Members, (*responseMembershipList)[j])
 			}
+		}
+	}
+	c.mu.Unlock()
+}
+
+func (c *Membership) UpdateEntry(processId string, processState string) {
+	endpoint := strings.Split(processId, ":")[0]
+	c.mu.Lock()
+	for i := 0; i < len(*Members); i++ {
+		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
+			if processState == "FAILED" {
+				(*Members)[i].State = "FAILED"
+			}
+			if processState == "DELETE" {
+				for j = i; j < len(*Members)-1; j++ {
+					(*Members)[j] = (*Members)[j+1]
+				}
+				*Members = (*Members)[:len(*Members)-1]
+			}
+			break
 		}
 	}
 	c.mu.Unlock()
