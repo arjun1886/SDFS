@@ -2,12 +2,14 @@ package main
 
 import (
 	"CS425/cs-425-mp1/src/conf"
+	"CS425/cs-425-mp1/src/introducer"
 	"CS425/cs-425-mp1/src/membership"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,56 +53,21 @@ func ping(targets []string) {
 		membershipStruct.UpdateMembers(&members)
 	}
 }
+
 func main() {
 
-	isPartOfNetwork := false
-	membershipStruct := membership.Membership{}
-	members := membershipStruct.GetMembers()
-	for i := 0; i < len(*members); i++ {
-		endpoint := strings.Split((*members)[i].ProcessId, ":")[0]
-		if endpoint == membership.Self {
-			isPartOfNetwork = true
-			break
-		}
+	hostName, err := os.Hostname()
+
+	if err != nil {
+		log.Println(err)
 	}
 
-	if !isPartOfNetwork {
-		request := "JOIN"
-		servAddr := conf.IntroducerEndpoint
-		tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
-		if err != nil {
-			println("ResolveTCPAddr failed:", err.Error())
-			os.Exit(1)
-		}
-
-		conn, err := net.DialTCP("tcp", nil, tcpAddr)
-		if err != nil {
-			println("Dial failed:", err.Error())
-			os.Exit(1)
-		}
-
-		_, err = conn.Write([]byte(request))
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		println("write to server = ", request)
-
-		reply := make([]byte, 1024)
-
-		_, err = conn.Read(reply)
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		err = json.Unmarshal(reply, membership.Members)
-		if err != nil {
-			log.Println(err)
-		}
-		conn.Close()
+	initMember := conf.Member{
+		ProcessId:         hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10),
+		State:             "ACTIVE",
+		IncarnationNumber: 1,
 	}
+	*membership.Members = append(*membership.Members, initMember)
 
 	go Server()
 
@@ -148,6 +115,63 @@ func handleUDPConnection(conn *net.UDPConn) {
 
 }
 
+func handleTCPConnection(conn net.Conn) {
+
+	buffer := make([]byte, 1024)
+
+	_, err := conn.Read(buffer)
+
+	var request string
+	err = json.Unmarshal(buffer, &request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	hostName, err := os.Hostname()
+	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))
+	membersByte, err := json.Marshal(membership.Members)
+	if err != nil {
+		fmt.Println()
+	}
+
+	message := membersByte
+	_, err = conn.Write(message)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+}
+
+func IntroducerServer() {
+	hostName := "localhost"
+	portNum := "8002"
+	service := hostName + ":" + portNum
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", service)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ln, err := net.ListenTCP("tcp", tcpAddr)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer ln.Close()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println("Error accepting TCP conn: ", err.Error())
+			os.Exit(1)
+		}
+		handleTCPConnection(conn)
+	}
+}
+
 func Server() {
 	hostName := "localhost"
 	portNum := "8001"
@@ -159,7 +183,6 @@ func Server() {
 		log.Fatal(err)
 	}
 
-	// setup listener for incoming UDP connection
 	ln, err := net.ListenUDP("udp", udpAddr)
 
 	if err != nil {

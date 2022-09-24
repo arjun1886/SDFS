@@ -5,16 +5,16 @@ import (
 	"CS425/cs-425-mp1/src/membership"
 )
 
-func JoinNetwork(processID string) {
-	addMember(processID)
+func JoinNetwork(processId string) {
+	addMember(processId)
 }
 
-func addMember(processID string) error {
+func addMember(processId string) {
 	members := membership.Members
 	newMember := conf.Member{
-		ProcessID:         processID,
+		ProcessId:         processId,
 		State:             "Active",
 		IncarnationNumber: 1,
 	}
-	members = append(members, &newMember)
+	*members = append(*members, newMember)
 }

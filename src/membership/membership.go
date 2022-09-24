@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 var Members *[]conf.Member
@@ -80,7 +81,7 @@ func (c *Membership) UpdateEntry(processId string, processState string) {
 				(*Members)[i].State = "FAILED"
 			}
 			if processState == "DELETE" {
-				for j = i; j < len(*Members)-1; j++ {
+				for j := i; j < len(*Members)-1; j++ {
 					(*Members)[j] = (*Members)[j+1]
 				}
 				*Members = (*Members)[:len(*Members)-1]
@@ -89,6 +90,12 @@ func (c *Membership) UpdateEntry(processId string, processState string) {
 		}
 	}
 	c.mu.Unlock()
+}
+
+func (c *Membership) Cleanup(processId string) {
+	time.Sleep(3 * time.Second)
+	membershipStruct := Membership{}
+	membershipStruct.UpdateEntry(processId, "DELETE")
 }
 
 func (c *Membership) GetMembers() *[]conf.Member {
@@ -123,7 +130,7 @@ func GetTargets() []string {
 			}
 		}
 	}
-	for k, _ := range targetsMap {
+	for k := range targetsMap {
 		targets = append(targets, k)
 	}
 	return targets
