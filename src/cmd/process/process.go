@@ -16,11 +16,8 @@ func ping(targets []string) {
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "6000"
 		service := hostName + ":" + portNum
-		RemoteAddr, err := net.ResolveUDPAddr("udp", service)
-		conn, err := net.DialUDP("udp", nil, RemoteAddr)
-
-		// note : you can use net.ResolveUDPAddr for LocalAddr as well
-		//        for this tutorial simplicity sake, we will just use nil
+		//RemoteAddr, err := net.ResolveUDPAddr("udp", service)
+		conn, err := net.DialTimeout("udp", service, 1*time.Second)
 
 		if err != nil {
 			log.Fatal(err)
@@ -39,8 +36,10 @@ func ping(targets []string) {
 
 		// receive message from server
 		buffer := make([]byte, 1024)
-		_, _, err = conn.ReadFromUDP(buffer)
+		err = conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+		_, err = conn.Read(buffer)
 		if err != nil {
+			membershipStruct := membership.Membership{}
 			log.Println(err)
 		}
 		var members []conf.Member
@@ -59,7 +58,9 @@ func main() {
 			select {
 			case _ = <-ticker.C:
 				targets := membership.GetTargets()
-				ping(targets)
+				if len(targets) > 1 {
+					ping(targets)
+				}
 			}
 		}
 	}()
