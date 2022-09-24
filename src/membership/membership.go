@@ -23,13 +23,13 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	// var selfEndpoint[] = {}
 	// var receivingEndpoint[]
 	for i := 0; i < len(*Members); i++ {
-		// selfEndpoint = strings.Split((*Members)[i].ProcessID, ":")
+		// selfEndpoint = strings.Split((*Members)[i].ProcessId, ":")
 		/*if flag == 0 {
 			flag = 1
 			continue
 		}*/
 		for j := 0; j < len(*responseMembershipList); j++ {
-			// receivingEndpoint = strings.Split(members[j].ProcessID, ":")
+			// receivingEndpoint = strings.Split(members[j].ProcessId, ":")
 			if (*Members)[i] == (*responseMembershipList)[j] {
 				//flag = 0
 				break
@@ -56,7 +56,7 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	if len(*responseMembershipList) > len(*Members) {
 
 		for j := 0; j < len(*responseMembershipList); j++ {
-			flag = 0
+			flag := 0
 			for i := 0; i < len(*Members); i++ {
 				if (*Members)[i].ProcessId == (*responseMembershipList)[j].ProcessId {
 					flag = 1
@@ -64,24 +64,24 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 				}
 			}
 			if flag == 0 {
-				Members.append((*responseMembershipList)[j])
+				*Members = append(*Members, (*responseMembershipList)[j])
 			}
 		}
 	}
 	c.mu.Unlock()
 }
 
-func (c *Membership) GetMembers() []*conf.Member {
+func (c *Membership) GetMembers() *[]conf.Member {
 	c.mu.Lock()
 	members := *Members
 	for i := 0; i < len(members); i++ {
-		endpoint := strings.Split((members)[i].ProcessID, ":")[0]
+		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
 		if endpoint == Self {
 			(members)[i].IncarnationNumber += 1
 		}
 	}
 	c.mu.Unlock()
-	return members
+	return &members
 }
 
 func GetTargets() []string {
@@ -89,17 +89,17 @@ func GetTargets() []string {
 	targetsMap := make(map[string]interface{})
 	targets := []string{}
 	for i := 0; i < len(members); i++ {
-		endpoint := strings.Split((members)[i].ProcessID, ":")[0]
+		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
 		if endpoint == Self {
 			if i == 0 {
-				targetsMap[members[len(members)-1].ProcessID] = nil
-				targets = append(targets, members[len(members)-1].ProcessID)
+				targetsMap[members[len(members)-1].ProcessId] = nil
+				targets = append(targets, members[len(members)-1].ProcessId)
 			} else {
-				targetsMap[members[i-1].ProcessID] = nil
+				targetsMap[members[i-1].ProcessId] = nil
 			}
-			targetsMap[members[i+1%(len(members))].ProcessID] = nil
+			targetsMap[members[i+1%(len(members))].ProcessId] = nil
 			if i+3%(len(members)) > len(members)-1 {
-				targetsMap[members[len(members)-1].ProcessID] = nil
+				targetsMap[members[len(members)-1].ProcessId] = nil
 			}
 		}
 	}
