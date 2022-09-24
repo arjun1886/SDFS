@@ -1,0 +1,19 @@
+syntax = "proto3";
+package introducer;
+
+option go_package = "./introducer";
+
+message IntroducerInput {
+  string data = 1;
+  string flag = 2;
+}
+
+message IntroducerOutput {
+  repeated string fileName = 1;
+  repeated string  matches = 2;
+  string totalMatchCount = 3;
+}
+
+service IntroducerService {
+  rpc FetchIntroducerOutput(CoordinatorInput) returns (CoordinatorOutput) {}
+}
