@@ -14,6 +14,7 @@ import (
 
 func ping(targets []string) {
 	for i := 0; i < len(targets); i++ {
+		fmt.Println(targets)
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "8001"
 		service := hostName + ":" + portNum
@@ -49,7 +50,6 @@ func ping(targets []string) {
 		var members []conf.Member
 		json.Unmarshal(buffer[:n], &members)
 		membershipStruct := membership.Membership{}
-		fmt.Println(members)
 		membershipStruct.UpdateMembers(&members)
 	}
 }
@@ -100,11 +100,10 @@ func main() {
 
 		err = json.Unmarshal(reply[:n], membership.Members)
 		if err != nil {
-			log.Println(err)
+			log.Println("hii", err)
 		}
 
 		fmt.Println(membership.Members)
-
 		conn.Close()
 	}
 
@@ -140,10 +139,9 @@ func handleUDPConnection(conn *net.UDPConn) {
 
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
-	fmt.Println(members)
 	membersByte, err := json.Marshal(members)
 	if err != nil {
-		fmt.Println()
+		fmt.Println(err)
 	}
 	// write message back to client
 	message := membersByte

@@ -13,7 +13,7 @@ func addMember(processId string) {
 	members := membership.Members
 	newMember := conf.Member{
 		ProcessId:         processId,
-		State:             "Active",
+		State:             "ACTIVE",
 		IncarnationNumber: 1,
 	}
 	*members = append(*members, newMember)

@@ -2,13 +2,14 @@ package membership
 
 import (
 	"CS425/cs-425-mp1/src/conf"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"time"
 )
 
-var Members *[]conf.Member
+var Members = &[]conf.Member{}
 var IncarnationNumber int = 1
 var Self = os.Getenv("my_endpoint")
 
@@ -18,7 +19,7 @@ type Membership struct {
 }
 
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
-	c.mu.Lock()
+	//c.mu.Lock()
 	// members := Members
 	//flag = 1
 	// var selfEndpoint[] = {}
@@ -69,12 +70,13 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 			}
 		}
 	}
-	c.mu.Unlock()
+	//c.mu.Unlock()
 }
 
 func (c *Membership) UpdateEntry(processId string, processState string) {
+	fmt.Println(processId)
 	endpoint := strings.Split(processId, ":")[0]
-	c.mu.Lock()
+	//c.mu.Lock()
 	for i := 0; i < len(*Members); i++ {
 		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
 			if processState == "FAILED" {
@@ -89,7 +91,7 @@ func (c *Membership) UpdateEntry(processId string, processState string) {
 			break
 		}
 	}
-	c.mu.Unlock()
+	//c.mu.Unlock()
 }
 
 func (c *Membership) Cleanup(processId string) {
@@ -99,7 +101,7 @@ func (c *Membership) Cleanup(processId string) {
 }
 
 func (c *Membership) GetMembers() *[]conf.Member {
-	c.mu.Lock()
+	//c.mu.Lock()
 	members := *Members
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
@@ -107,7 +109,7 @@ func (c *Membership) GetMembers() *[]conf.Member {
 			(members)[i].IncarnationNumber += 1
 		}
 	}
-	c.mu.Unlock()
+	//c.mu.Unlock()
 	return &members
 }
 

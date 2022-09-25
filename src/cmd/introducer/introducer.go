@@ -62,12 +62,6 @@ func main() {
 		log.Println(err)
 	}
 
-	initMember := conf.Member{
-		ProcessId:         hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10),
-		State:             "ACTIVE",
-		IncarnationNumber: 1,
-	}
-	*membership.Members = append(*membership.Members, initMember)
 	go IntroducerServer()
 	go Server()
 
@@ -79,6 +73,13 @@ func main() {
 				targets := membership.GetTargets()
 				if len(targets) > 1 {
 					ping(targets)
+				} else {
+					initMember := conf.Member{
+						ProcessId:         hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10),
+						State:             "ACTIVE",
+						IncarnationNumber: 1,
+					}
+					*membership.Members = append(*membership.Members, initMember)
 				}
 			}
 		}
@@ -101,7 +102,7 @@ func handleUDPConnection(conn *net.UDPConn) {
 	members := membershipStruct.GetMembers()
 	membersByte, err := json.Marshal(members)
 	if err != nil {
-		fmt.Println()
+		fmt.Println(err)
 	}
 	// write message back to client
 	message := membersByte
@@ -119,14 +120,13 @@ func handleTCPConnection(conn net.Conn) {
 
 	_, err := conn.Read(buffer)
 
-	var request string
-	fmt.Println(string(request))
+	fmt.Println(membership.Members)
 
 	hostName, err := os.Hostname()
 	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))
 	membersByte, err := json.Marshal(membership.Members)
 	if err != nil {
-		fmt.Println()
+		fmt.Println(err)
 	}
 
 	message := membersByte
