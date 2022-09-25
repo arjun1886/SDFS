@@ -41,7 +41,6 @@ func ping(targets []string) {
 		err = conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		n, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("hiii")
 			membershipStruct := membership.Membership{}
 			membershipStruct.UpdateEntry(targets[i], "FAILED")
 			go membershipStruct.Cleanup(targets[i])
@@ -158,7 +157,7 @@ func Server() {
 	portNum := "8001"
 	service := hostName + ":" + portNum
 
-	udpAddr, err := net.ResolveUDPAddr("udp4", service)
+	udpAddr, err := net.ResolveUDPAddr("udp", service)
 
 	if err != nil {
 		log.Fatal(err)

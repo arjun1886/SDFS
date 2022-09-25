@@ -12,7 +12,7 @@ import (
 
 var Members = &[]conf.Member{}
 var IncarnationNumber int = 1
-var Self = os.Getenv("my_endpoint")
+var Self, _ = os.Hostname()
 
 // Mutex is safe to use concurrently.
 type Membership struct {
@@ -120,17 +120,15 @@ func GetTargets() []string {
 	targets := []string{}
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
-		if endpoint == Self {
+		if endpoint == Self && len(members) != 1 {
 			if i == 0 {
 				targetsMap[members[len(members)-1].ProcessId] = nil
 				targets = append(targets, members[len(members)-1].ProcessId)
 			} else {
 				targetsMap[members[i-1].ProcessId] = nil
 			}
-			targetsMap[members[i+1%(len(members))].ProcessId] = nil
-			if i+3%(len(members)) > len(members)-1 {
-				targetsMap[members[len(members)-1].ProcessId] = nil
-			}
+			targetsMap[members[(i+1)%(len(members))].ProcessId] = nil
+			targetsMap[members[(i+3)%(len(members))].ProcessId] = nil
 		}
 	}
 	for k := range targetsMap {

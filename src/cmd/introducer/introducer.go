@@ -169,10 +169,10 @@ func IntroducerServer() {
 
 func Server() {
 	hostName := "localhost"
-	portNum := "8003"
+	portNum := "8001"
 	service := hostName + ":" + portNum
 
-	udpAddr, err := net.ResolveUDPAddr("udp4", service)
+	udpAddr, err := net.ResolveUDPAddr("udp", service)
 
 	if err != nil {
 		log.Fatal(err)
@@ -183,8 +183,6 @@ func Server() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("UDP server up and listening on port 8001")
 
 	defer ln.Close()
 
