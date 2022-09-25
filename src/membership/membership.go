@@ -153,7 +153,10 @@ func GetTargets() []string {
 		}
 	}
 	for k := range targetsMap {
-		targets = append(targets, k)
+		endpoint := strings.Split(k, ":")[0]
+		if endpoint != Self {
+			targets = append(targets, k)
+		}
 	}
 	return targets
 }
