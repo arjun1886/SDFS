@@ -3,6 +3,7 @@ package membership
 import (
 	"CS425/cs-425-mp1/src/conf"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -136,6 +137,27 @@ func GetTargets() []string {
 		targets = append(targets, k)
 	}
 	return targets
+}
+
+func printSelfId(hostname string) {
+	endpoint := strings.Split(hostname, ":")[0]
+	//c.mu.Lock()
+	for i := 0; i < len(*Members); i++ {
+		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
+			log.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
+			log.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
+			break
+		}
+	}
+}
+
+func printMembershipList() {
+	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	for i := 0; i < len(*Members); i++ {
+		fmt.Printf("%s\t\t%s\t\t%s\n", (*Members).ProcessId, (*Members).IncarnationNumber,
+			(*Members).State)
+	}
 }
 
 /*
