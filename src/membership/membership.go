@@ -120,6 +120,19 @@ func (c *Membership) GetMembers() *[]conf.Member {
 	return &members
 }
 
+func (c *Membership) LeaveNetwork() *[]conf.Member {
+	//c.mu.Lock()
+	members := *Members
+	for i := 0; i < len(members); i++ {
+		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
+		if endpoint == Self {
+			(members)[i].State = "FAILED"
+		}
+	}
+	//c.mu.Unlock()
+	return &members
+}
+
 func GetTargets() []string {
 	members := *Members
 	targetsMap := make(map[string]interface{})
