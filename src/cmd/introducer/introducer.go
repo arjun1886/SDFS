@@ -127,6 +127,7 @@ func handleTCPConnection(conn net.Conn) {
 	//var hostName string
 	n, err := conn.Read(buffer)
 	//json.Unmarshal(buffer[:n], &hostName)
+	log.Println(string(buffer[:n]))
 	membership.PrintMembershipList()
 
 	introducer.JoinNetwork(string(buffer[:n]) + ":" + strconv.FormatInt(time.Now().Unix(), 10))
