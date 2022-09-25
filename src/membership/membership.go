@@ -121,14 +121,35 @@ func GetTargets() []string {
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
 		if endpoint == Self && len(members) != 1 {
+			var predecessor int
+			successor := i + 1
+			arbitraryTarget := i + 3
 			if i == 0 {
-				targetsMap[members[len(members)-1].ProcessId] = nil
-				targets = append(targets, members[len(members)-1].ProcessId)
+				predecessor = len(members) - 1
 			} else {
-				targetsMap[members[i-1].ProcessId] = nil
+				predecessor = i - 1
 			}
-			targetsMap[members[(i+1)%(len(members))].ProcessId] = nil
-			targetsMap[members[(i+3)%(len(members))].ProcessId] = nil
+			for members[predecessor].State == "FAILED" {
+				predecessor -= 1
+				if predecessor < 0 {
+					predecessor = len(targets) - 1
+				}
+			}
+			targetsMap[members[predecessor].ProcessId] = nil
+			for members[successor%(len(members))].State == "FAILED" {
+				if members[successor%(len(members))].ProcessId == Self {
+					break
+				}
+				successor += 1
+			}
+			targetsMap[members[successor%(len(members))].ProcessId] = nil
+			for members[arbitraryTarget%(len(members))].State == "FAILED" {
+				if members[arbitraryTarget%(len(members))].ProcessId == Self {
+					break
+				}
+				arbitraryTarget += 1
+			}
+			targetsMap[members[arbitraryTarget%(len(members))].ProcessId] = nil
 		}
 	}
 	for k := range targetsMap {
