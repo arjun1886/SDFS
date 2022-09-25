@@ -20,8 +20,9 @@ func ping(targets []string) {
 		portNum := "8001"
 		service := hostName + ":" + portNum
 		//RemoteAddr, err := net.ResolveUDPAddr("udp", service)
-		conn, err := net.DialTimeout("udp", service, 1*time.Second)
-
+		//conn, err := net.DialTimeout("udp", service, 1*time.Second)
+		RemoteAddr, err := net.ResolveUDPAddr("udp", service)
+		conn, err := net.DialUDP("udp", nil, RemoteAddr)
 		if err != nil {
 			log.Fatal(err)
 		}
