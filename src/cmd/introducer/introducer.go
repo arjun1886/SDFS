@@ -71,7 +71,7 @@ func main() {
 			select {
 			case _ = <-ticker.C:
 				targets := membership.GetTargets()
-				if len(targets) > 1 {
+				if len(targets) >= 1 {
 					ping(targets)
 				} else {
 					initMember := conf.Member{

@@ -117,7 +117,7 @@ func (c *Membership) GetMembers() *[]conf.Member {
 func GetTargets() []string {
 	members := *Members
 	targetsMap := make(map[string]interface{})
-	targets := []string{}
+	var targets []string
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
 		if endpoint == Self && len(members) != 1 {
