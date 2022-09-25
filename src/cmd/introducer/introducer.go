@@ -120,7 +120,8 @@ func handleTCPConnection(conn net.Conn) {
 
 	_, err := conn.Read(buffer)
 
-	fmt.Println(membership.Members)
+	membership.PrintMembershipList()
+	//fmt.Println(membership.Members)
 
 	hostName, err := os.Hostname()
 	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))

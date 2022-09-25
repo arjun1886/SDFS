@@ -75,7 +75,7 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 }
 
 func (c *Membership) UpdateEntry(processId string, processState string) {
-	fmt.Println(processId)
+	fmt.Printf("Calling UpdateEntry with processId %s", processId)
 	endpoint := strings.Split(processId, ":")[0]
 	//c.mu.Lock()
 	for i := 0; i < len(*Members); i++ {
@@ -161,36 +161,25 @@ func GetTargets() []string {
 	return targets
 }
 
-func printSelfId(hostname string) {
+func PrintSelfId(hostname string) {
 	endpoint := strings.Split(hostname, ":")[0]
 	//c.mu.Lock()
 	for i := 0; i < len(*Members); i++ {
 		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
-			log.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
+			fmt.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
 			log.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
 			break
 		}
 	}
 }
 
-func printMembershipList() {
+func PrintMembershipList() {
 	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
 	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
 	for i := 0; i < len(*Members); i++ {
 		fmt.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
 			(*Members)[i].State)
+		/*log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
+		(*Members)[i].State)*/
 	}
 }
-
-/*
-
-func main() {
- hostname, error := os.Hostname()
- if error != nil {
-  panic(error)
- }
- fmt.Println("hostname returned from Environment : ", hostname)
- fmt.Println("error : ", error)
-
-}
-*/
