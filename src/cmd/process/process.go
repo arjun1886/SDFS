@@ -68,7 +68,8 @@ func main() {
 	}
 
 	if !isPartOfNetwork {
-		request := "JOIN"
+		// request := "JOIN"
+		request, _ := os.Hostname()
 		servAddr := conf.IntroducerEndpoint
 		tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 		if err != nil {
@@ -89,6 +90,7 @@ func main() {
 		}
 
 		println("write to server = ", request)
+		log.Println("write to server=", request)
 
 		reply := make([]byte, 1024)
 

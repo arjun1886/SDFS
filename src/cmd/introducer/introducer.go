@@ -84,8 +84,15 @@ func main() {
 			}
 		}
 	}()
+	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	for i := 0; i < len(*membership.Members); i++ {
+		fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
+			(*membership.Members)[i].State)
+		/*log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
+		(*Members)[i].State)*/
+	}
 	select {}
-
 }
 
 func handleUDPConnection(conn *net.UDPConn) {
@@ -117,13 +124,13 @@ func handleUDPConnection(conn *net.UDPConn) {
 func handleTCPConnection(conn net.Conn) {
 
 	buffer := make([]byte, 1024)
-
-	_, err := conn.Read(buffer)
-
+	var hostName string
+	n, err := conn.Read(buffer)
+	json.Unmarshal(buffer[:n], &hostName)
 	membership.PrintMembershipList()
 	//fmt.Println(membership.Members)
 
-	hostName, err := os.Hostname()
+	// hostName, err := os.Hostname()
 	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))
 	membersByte, err := json.Marshal(membership.Members)
 	if err != nil {

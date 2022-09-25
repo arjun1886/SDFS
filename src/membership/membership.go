@@ -26,10 +26,13 @@ func areMembersEqual(member1, member2 conf.Member) bool {
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	//c.mu.Lock()
 	finalMembers := []conf.Member{}
+	flag := 0
 	for i := 0; i < len(*Members); i++ {
+		flag = 0
 		for j := 0; j < len(*responseMembershipList); j++ {
 			if areMembersEqual((*Members)[i], (*responseMembershipList)[j]) {
 				finalMembers = append(finalMembers, (*Members)[i])
+				flag = 1
 				break
 			}
 			if (*Members)[i].ProcessId != (*responseMembershipList)[j].ProcessId {
@@ -37,18 +40,24 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 			} else {
 				if (*Members)[i].IncarnationNumber > (*responseMembershipList)[j].IncarnationNumber {
 					finalMembers = append(finalMembers, (*Members)[i])
+					flag = 1
 					break
 				} else if (*Members)[i].IncarnationNumber < (*responseMembershipList)[j].IncarnationNumber {
 					finalMembers = append(finalMembers, (*responseMembershipList)[j])
-					//flag = 0
+					flag = 1
 					break
 				} else {
 					if (*Members)[i].State == "ACTIVE" && (*responseMembershipList)[j].State == "FAILED" {
 						(*Members)[i].State = "FAILED"
 						finalMembers = append(finalMembers, (*Members)[i])
+						flag = 1
 					}
 				}
 			}
+		}
+
+		if flag == 0 {
+			finalMembers = append(finalMembers, (*Members)[i])
 		}
 
 	}
