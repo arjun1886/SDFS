@@ -124,14 +124,12 @@ func handleUDPConnection(conn *net.UDPConn) {
 func handleTCPConnection(conn net.Conn) {
 
 	buffer := make([]byte, 1024)
-	var hostName string
+	//var hostName string
 	n, err := conn.Read(buffer)
-	json.Unmarshal(buffer[:n], &hostName)
+	//json.Unmarshal(buffer[:n], &hostName)
 	membership.PrintMembershipList()
-	//fmt.Println(membership.Members)
 
-	// hostName, err := os.Hostname()
-	introducer.JoinNetwork(hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10))
+	introducer.JoinNetwork(string(buffer[:n]) + ":" + strconv.FormatInt(time.Now().Unix(), 10))
 	membersByte, err := json.Marshal(membership.Members)
 	if err != nil {
 		fmt.Println(err)

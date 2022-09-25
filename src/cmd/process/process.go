@@ -68,7 +68,6 @@ func main() {
 	}
 
 	if !isPartOfNetwork {
-		// request := "JOIN"
 		request, _ := os.Hostname()
 		servAddr := conf.IntroducerEndpoint
 		tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
