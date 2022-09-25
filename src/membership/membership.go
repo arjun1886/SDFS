@@ -153,8 +153,8 @@ func printMembershipList() {
 	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
 	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
 	for i := 0; i < len(*Members); i++ {
-		fmt.Printf("%s\t\t%s\t\t%s\n", (*Members).ProcessId, (*Members).IncarnationNumber,
-			(*Members).State)
+		fmt.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
+			(*Members)[i].State)
 	}
 }
 
