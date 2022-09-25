@@ -71,6 +71,13 @@ func main() {
 			select {
 			case _ = <-ticker.C:
 				targets := membership.GetTargets()
+				log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+				for i := 0; i < len(*membership.Members); i++ {
+					fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
+						(*membership.Members)[i].State)
+					/*log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
+					(*Members)[i].State)*/
+				}
 				if len(targets) >= 1 {
 					ping(targets)
 				} else if len(*membership.Members) == 0 {
@@ -84,14 +91,7 @@ func main() {
 			}
 		}
 	}()
-	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
-	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
-	for i := 0; i < len(*membership.Members); i++ {
-		fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
-			(*membership.Members)[i].State)
-		/*log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
-		(*Members)[i].State)*/
-	}
+
 	select {}
 }
 
