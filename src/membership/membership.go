@@ -19,36 +19,33 @@ type Membership struct {
 	mu sync.Mutex
 }
 
+func areMembersEqual(member1, member2 conf.Member) bool {
+	return member1.ProcessId == member2.ProcessId && member1.State == member2.State && member1.IncarnationNumber == member2.IncarnationNumber
+}
+
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	//c.mu.Lock()
-	// members := Members
-	//flag = 1
-	// var selfEndpoint[] = {}
-	// var receivingEndpoint[]
+	finalMembers := []conf.Member{}
 	for i := 0; i < len(*Members); i++ {
-		// selfEndpoint = strings.Split((*Members)[i].ProcessId, ":")
-		/*if flag == 0 {
-			flag = 1
-			continue
-		}*/
 		for j := 0; j < len(*responseMembershipList); j++ {
-			// receivingEndpoint = strings.Split(members[j].ProcessId, ":")
-			if (*Members)[i] == (*responseMembershipList)[j] {
-				//flag = 0
+			if areMembersEqual((*Members)[i], (*responseMembershipList)[j]) {
+				finalMembers = append(finalMembers, (*Members)[i])
 				break
 			}
 			if (*Members)[i].ProcessId != (*responseMembershipList)[j].ProcessId {
 				continue
 			} else {
 				if (*Members)[i].IncarnationNumber > (*responseMembershipList)[j].IncarnationNumber {
+					finalMembers = append(finalMembers, (*Members)[i])
 					break
 				} else if (*Members)[i].IncarnationNumber < (*responseMembershipList)[j].IncarnationNumber {
-					(*Members)[i] = (*responseMembershipList)[j] // does inc number also get updated here?
+					finalMembers = append(finalMembers, (*responseMembershipList)[j])
 					//flag = 0
 					break
 				} else {
 					if (*Members)[i].State == "ACTIVE" && (*responseMembershipList)[j].State == "FAILED" {
 						(*Members)[i].State = "FAILED"
+						finalMembers = append(finalMembers, (*Members)[i])
 					}
 				}
 			}
@@ -57,7 +54,6 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	}
 
 	if len(*responseMembershipList) > len(*Members) {
-
 		for j := 0; j < len(*responseMembershipList); j++ {
 			flag := 0
 			for i := 0; i < len(*Members); i++ {
@@ -67,10 +63,11 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 				}
 			}
 			if flag == 0 {
-				*Members = append(*Members, (*responseMembershipList)[j])
+				finalMembers = append(finalMembers, (*responseMembershipList)[j])
 			}
 		}
 	}
+	Members = &finalMembers
 	//c.mu.Unlock()
 }
 

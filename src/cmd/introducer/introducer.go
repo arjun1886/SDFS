@@ -73,7 +73,7 @@ func main() {
 				targets := membership.GetTargets()
 				if len(targets) >= 1 {
 					ping(targets)
-				} else {
+				} else if len(*membership.Members) == 0 {
 					initMember := conf.Member{
 						ProcessId:         hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10),
 						State:             "ACTIVE",
