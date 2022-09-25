@@ -34,7 +34,7 @@ var (
 	LogFileName9  string = "vm9.log"
 	LogFileName10 string = "vm10.log"
 
-	IntroducerEndpoint string = "localhost:8002"
+	IntroducerEndpoint string = "fa22-cs425-6602.cs.illinois.edu:8002"
 )
 
 type CoordinatorConfigs struct {

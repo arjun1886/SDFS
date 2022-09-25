@@ -153,7 +153,7 @@ func handleUDPConnection(conn *net.UDPConn) {
 }
 
 func Server() {
-	hostName := "localhost"
+	hostName, _ := os.Hostname()
 	portNum := "8001"
 	service := hostName + ":" + portNum
 

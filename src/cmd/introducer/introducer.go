@@ -139,7 +139,7 @@ func handleTCPConnection(conn net.Conn) {
 }
 
 func IntroducerServer() {
-	hostName := "localhost"
+	hostName, _ := os.Hostname()
 	portNum := "8002"
 	service := hostName + ":" + portNum
 
@@ -168,7 +168,7 @@ func IntroducerServer() {
 }
 
 func Server() {
-	hostName := "localhost"
+	hostName, _ := os.Hostname()
 	portNum := "8001"
 	service := hostName + ":" + portNum
 
