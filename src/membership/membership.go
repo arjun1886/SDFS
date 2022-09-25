@@ -151,7 +151,7 @@ func GetTargets() []string {
 			for members[predecessor].State == "FAILED" {
 				predecessor -= 1
 				if predecessor < 0 {
-					predecessor = len(targets) - 1
+					predecessor = len(members) - 1
 				}
 			}
 			targetsMap[members[predecessor].ProcessId] = nil
