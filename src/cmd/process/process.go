@@ -117,6 +117,11 @@ func main() {
 		for {
 			select {
 			case _ = <-ticker.C:
+				log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+				for i := 0; i < len(*membership.Members); i++ {
+					fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
+						(*membership.Members)[i].State)
+				}
 				targets := membership.GetTargets()
 				if len(targets) >= 1 {
 					ping(targets)

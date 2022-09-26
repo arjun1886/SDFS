@@ -16,6 +16,7 @@ import (
 
 func ping(targets []string) {
 	for i := 0; i < len(targets); i++ {
+		fmt.Println("Targets:", targets)
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "8001"
 		service := hostName + ":" + portNum

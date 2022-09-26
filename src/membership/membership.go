@@ -14,22 +14,26 @@ var Members = &[]conf.Member{}
 var IncarnationNumber int = 1
 var Self, _ = os.Hostname()
 
-// Mutex is safe to use concurrently.
+// Using mutex lock for membership tables
 type Membership struct {
 	mu sync.Mutex
 }
 
+// function to check if values of struct Member are deeply equal
 func areMembersEqual(member1, member2 conf.Member) bool {
-	return member1.ProcessId == member2.ProcessId && member1.State == member2.State && member1.IncarnationNumber == member2.IncarnationNumber
+	return member1.ProcessId == member2.ProcessId && member1.State == member2.State
+	&& member1.IncarnationNumber == member2.IncarnationNumber
 }
 
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
-	//c.mu.Lock()
+	c.mu.Lock()
+	// finalMembers is a copy of self's members, to be
 	finalMembers := []conf.Member{}
 	flag := 0
 	for i := 0; i < len(*Members); i++ {
 		flag = 0
 		for j := 0; j < len(*responseMembershipList); j++ {
+			// If members are deeply equal, retain self's entry
 			if areMembersEqual((*Members)[i], (*responseMembershipList)[j]) {
 				finalMembers = append(finalMembers, (*Members)[i])
 				flag = 1
@@ -62,6 +66,24 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 
 	}
 
+	if len(*responseMembershipList) < len(*Members) {
+		for i := 0; i < len(*Members); i++ {
+			flag := 0
+			for j := 0; j < len(*responseMembershipList); j++ {
+				if (*Members)[i].ProcessId == (*responseMembershipList)[j].ProcessId {
+					flag = 1
+					break
+				}
+			}
+			if flag == 0 && (*Members)[i].State == "FAILED" {
+				for j := i; j < len(finalMembers)-1; j++ {
+					(finalMembers)[j] = (finalMembers)[j+1]
+					finalMembers = (finalMembers)[:len(finalMembers)-1]
+				}
+			}
+		}
+	}
+
 	if len(*responseMembershipList) > len(*Members) {
 		for j := 0; j < len(*responseMembershipList); j++ {
 			flag := 0
@@ -71,25 +93,28 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 					break
 				}
 			}
-			if flag == 0 {
+			if flag == 0 && (*responseMembershipList)[j].State != "FAILED" {
 				finalMembers = append(finalMembers, (*responseMembershipList)[j])
 			}
 		}
 	}
 	Members = &finalMembers
-	//c.mu.Unlock()
+	c.mu.Unlock()
 }
 
 func (c *Membership) UpdateEntry(processId string, processState string) {
-	fmt.Printf("Calling UpdateEntry with processId %s", processId)
+	fmt.Printf("Calling UpdateEntry with processId %s and state %s", processId, processState)
 	endpoint := strings.Split(processId, ":")[0]
-	//c.mu.Lock()
+	log.Println("UpdateEntry: Placing lock on membership table")
+	c.mu.Lock()
 	for i := 0; i < len(*Members); i++ {
 		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
 			if processState == "FAILED" {
+				log.Println("Updating entry with failed state")
 				(*Members)[i].State = "FAILED"
 			}
 			if processState == "DELETE" {
+				log.Println("Deleting entry")
 				for j := i; j < len(*Members)-1; j++ {
 					(*Members)[j] = (*Members)[j+1]
 				}
@@ -98,17 +123,18 @@ func (c *Membership) UpdateEntry(processId string, processState string) {
 			break
 		}
 	}
-	//c.mu.Unlock()
+	c.mu.Unlock()
+	log.Println("UpdateEntry: Removing lock on membership table")
 }
 
 func (c *Membership) Cleanup(processId string) {
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 	membershipStruct := Membership{}
 	membershipStruct.UpdateEntry(processId, "DELETE")
 }
 
 func (c *Membership) GetMembers() *[]conf.Member {
-	//c.mu.Lock()
+	c.mu.Lock()
 	members := *Members
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
@@ -116,12 +142,12 @@ func (c *Membership) GetMembers() *[]conf.Member {
 			(members)[i].IncarnationNumber += 1
 		}
 	}
-	//c.mu.Unlock()
+	c.mu.Unlock()
 	return &members
 }
 
 func (c *Membership) LeaveNetwork() *[]conf.Member {
-	//c.mu.Lock()
+	c.mu.Lock()
 	members := *Members
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
@@ -129,7 +155,7 @@ func (c *Membership) LeaveNetwork() *[]conf.Member {
 			(members)[i].State = "FAILED"
 		}
 	}
-	//c.mu.Unlock()
+	c.mu.Unlock()
 	return &members
 }
 
@@ -149,6 +175,9 @@ func GetTargets() []string {
 				predecessor = i - 1
 			}
 			for members[predecessor].State == "FAILED" {
+				if members[predecessor%(len(members))].ProcessId == Self {
+					break
+				}
 				predecessor -= 1
 				if predecessor < 0 {
 					predecessor = len(members) - 1
