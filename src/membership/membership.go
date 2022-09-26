@@ -2,7 +2,6 @@ package membership
 
 import (
 	"CS425/cs-425-mp1/src/conf"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -29,13 +28,16 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 	// finalMembers is originally a copy of self's membership table
 	// It will be updated and returned as final updated table for self
 	finalMembers := []conf.Member{}
+	// log.Printf("Length of own list: %d, length of incoming list: %d",
+	//len(*Members), len(*responseMembershipList))
 	flag := 0
+
 	for i := 0; i < len(*Members); i++ {
 		flag = 0
 		for j := 0; j < len(*responseMembershipList); j++ {
 			// If members are deeply equal, retain self's entry
 			if areMembersEqual((*Members)[i], (*responseMembershipList)[j]) {
-				finalMembers = append(finalMembers, (*Members)[i])
+				// finalMembers = append(finalMembers, (*Members)[i])
 				flag = 1
 				break
 			}
@@ -45,20 +47,20 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 			} else {
 				// higher incarnation number takes higher precedence for every conflicting entry, update and move to next i
 				if (*Members)[i].IncarnationNumber > (*responseMembershipList)[j].IncarnationNumber {
-					finalMembers = append(finalMembers, (*Members)[i])
+					// finalMembers = append(finalMembers, (*Members)[i])
 					flag = 1
 					break
 				} else if (*Members)[i].IncarnationNumber < (*responseMembershipList)[j].IncarnationNumber {
 					(*Members)[i].State = (*responseMembershipList)[j].State
 					(*Members)[i].IncarnationNumber = (*responseMembershipList)[j].IncarnationNumber
-					finalMembers = append(finalMembers, (*Members)[i])
+					// finalMembers = append(finalMembers, (*Members)[i])
 					flag = 1
 					break
 				} else {
 					// in case of conflict but same incarnation number, only update self's entry when incoming entry says failed
 					if (*Members)[i].State == "ACTIVE" && (*responseMembershipList)[j].State == "FAILED" {
 						(*Members)[i].State = "FAILED"
-						finalMembers = append(finalMembers, (*Members)[i])
+						// finalMembers = append(finalMembers, (*Members)[i])
 						flag = 1
 						break
 					}
@@ -86,33 +88,39 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 			}
 			// For every extra entry in self's table, if entry is marked as failed then delete it
 			if flag == 0 && (*Members)[i].State == "FAILED" {
-				for j := i; j < len(finalMembers)-1; j++ {
-					(finalMembers)[j] = (finalMembers)[j+1]
-					finalMembers = (finalMembers)[:len(finalMembers)-1]
+				for j := i; j < len(*Members)-1; j++ {
+					(*Members)[j] = (*Members)[j+1]
+				}
+				*Members = (*Members)[:len(*Members)-1]
+			}
+		}
+	} else {
+
+		// if incoming table contains more entries than self's table
+		if len(*responseMembershipList) > len(*Members) {
+			for j := 0; j < len(*responseMembershipList); j++ {
+				flag := 0
+				// For every matching process ID, skip
+				for i := 0; i < len(*Members); i++ {
+					if (*Members)[i].ProcessId == (*responseMembershipList)[j].ProcessId {
+						flag = 1
+						break
+					}
+				}
+
+				// For every extra entry in incoming table, if entry is marked as active then add it
+				if flag == 0 && (*responseMembershipList)[j].State != "FAILED" {
+					member := conf.Member{}
+					member.ProcessId = (*responseMembershipList)[j].ProcessId
+					member.State = (*responseMembershipList)[j].State
+					member.IncarnationNumber = (*responseMembershipList)[j].IncarnationNumber
+					*Members = append(*Members, member)
 				}
 			}
 		}
 	}
-
-	// if incoming table contains more entries than self's table
-	if len(*responseMembershipList) > len(*Members) {
-		for j := 0; j < len(*responseMembershipList); j++ {
-			flag := 0
-			// For every matching process ID, skip
-			for i := 0; i < len(*Members); i++ {
-				if (*Members)[i].ProcessId == (*responseMembershipList)[j].ProcessId {
-					flag = 1
-					break
-				}
-			}
-
-			// For every extra entry in incoming table, if entry is marked as active then add it
-			if flag == 0 && (*responseMembershipList)[j].State != "FAILED" {
-				finalMembers = append(finalMembers, (*responseMembershipList)[j])
-			}
-		}
-	}
-	Members = &finalMembers
+	// log.Printf("Final length of updated table:%d", len(*Members))
+	// Members = &finalMembers
 	c.mu.Unlock()
 }
 
@@ -178,7 +186,8 @@ func (c *Membership) LeaveNetwork() *[]conf.Member {
 }
 
 // GetTargets : to get list of neighbours which the process pings - Ring as backbone with one extra target but calculate dynamically using hashing
-func GetTargets() []string {
+func (c *Membership) GetTargets() []string {
+	c.mu.Lock()
 	members := *Members
 	targetsMap := make(map[string]interface{})
 	var targets []string
@@ -225,13 +234,15 @@ func GetTargets() []string {
 			targets = append(targets, k)
 		}
 	}
+	c.mu.Unlock()
+
 	return targets
 }
 
 // PrintSelfId : to print self's process ID
 func PrintSelfId(hostname string) {
 	endpoint := strings.Split(hostname, ":")[0]
-	//c.mu.Lock()
+	// c.mu.Lock()
 	for i := 0; i < len(*Members); i++ {
 		if endpoint == strings.Split((*Members)[i].ProcessId, ":")[0] {
 			// fmt.Printf("Process ID: %s\n", (*Members)[i].ProcessId)
@@ -244,8 +255,8 @@ func PrintSelfId(hostname string) {
 // PrintMembershipList : to print self's membership list
 
 func PrintMembershipList() {
-	fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
-	log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	// fmt.Printf("Process Id\t\tIncarnation Number\t\tState\n")
+	log.Printf("\t\tProcess Id\t\tIncarnation Number\t\tState\n")
 	for i := 0; i < len(*Members); i++ {
 		/*fmt.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
 		(*Members)[i].State)*/

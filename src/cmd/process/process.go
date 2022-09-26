@@ -46,11 +46,14 @@ func ping(targets []string) {
 			membershipStruct.UpdateEntry(targets[i], "FAILED")
 			go membershipStruct.Cleanup(targets[i])
 			log.Println(err)
+		} else {
+			var members []conf.Member
+			json.Unmarshal(buffer[:n], &members)
+			if len(members) != 0 {
+				membershipStruct := membership.Membership{}
+				membershipStruct.UpdateMembers(&members)
+			}
 		}
-		var members []conf.Member
-		json.Unmarshal(buffer[:n], &members)
-		membershipStruct := membership.Membership{}
-		membershipStruct.UpdateMembers(&members)
 	}
 }
 
@@ -64,7 +67,8 @@ func main() {
 		for {
 			select {
 			case _ = <-ticker.C:
-				targets := membership.GetTargets()
+				membershipStruct := membership.Membership{}
+				targets := membershipStruct.GetTargets()
 				if len(targets) >= 1 {
 					ping(targets)
 				}

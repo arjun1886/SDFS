@@ -47,11 +47,14 @@ func ping(targets []string) {
 			membershipStruct.UpdateEntry(targets[i], "FAILED")
 			go membershipStruct.Cleanup(targets[i])
 			log.Println(err)
+		} else {
+			var members []conf.Member
+			json.Unmarshal(buffer[:n], &members)
+			if len(members) != 0 {
+				membershipStruct := membership.Membership{}
+				membershipStruct.UpdateMembers(&members)
+			}
 		}
-		var members []conf.Member
-		json.Unmarshal(buffer[:n], &members)
-		membershipStruct := membership.Membership{}
-		membershipStruct.UpdateMembers(&members)
 	}
 }
 
@@ -71,7 +74,8 @@ func main() {
 		for {
 			select {
 			case _ = <-ticker.C:
-				targets := membership.GetTargets()
+				membershipStruct := membership.Membership{}
+				targets := membershipStruct.GetTargets()
 				if len(targets) >= 1 {
 					ping(targets)
 				} else if len(*membership.Members) == 0 {
@@ -86,7 +90,19 @@ func main() {
 		}
 	}()
 
-	select {}
+	for {
+		var arg string
+		fmt.Scanf("%s", &arg)
+		if arg == "LEAVE" {
+			membershipStruct := membership.Membership{}
+			membershipStruct.LeaveNetwork()
+		} else if arg == "LIST_MEM" {
+			membership.PrintMembershipList()
+		} else if arg == "LIST_SELF" {
+			hostName, _ := os.Hostname()
+			membership.PrintSelfId(hostName)
+		}
+	}
 }
 
 func handleUDPConnection(conn *net.UDPConn) {
@@ -120,9 +136,10 @@ func handleTCPConnection(conn net.Conn) {
 	buffer := make([]byte, 1024)
 	n, err := conn.Read(buffer)
 	log.Println(string(buffer[:n]))
-	membership.PrintMembershipList()
+	// membership.PrintMembershipList()
 	// Introducer allows the process to join the network
 	introducer.JoinNetwork(string(buffer[:n]) + ":" + strconv.FormatInt(time.Now().Unix(), 10))
+	// membership.PrintMembershipList()
 	membersByte, err := json.Marshal(membership.Members)
 	if err != nil {
 		fmt.Println(err)
