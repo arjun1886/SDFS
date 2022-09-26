@@ -133,12 +133,8 @@ func main() {
 		} else if arg == "LIST MEM" {
 			membership.PrintMembershipList()
 		} else {
-			for i := 0; i < len(*membership.Members); i++ {
-				endpoint := strings.Split((*membership.Members)[i].ProcessId, ":")[0]
-				if endpoint == membership.Self {
-					fmt.Println((*membership.Members)[i].ProcessId)
-				}
-			}
+			hostName, _ := os.Hostname()
+			membership.PrintSelfId(hostName)
 		}
 	}
 
