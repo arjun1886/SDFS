@@ -38,6 +38,7 @@ func ping(targets []string) {
 
 		// receive message from server
 		buffer := make([]byte, 1024)
+		// Wait 1 second for the Response from server
 		err = conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		n, err := conn.Read(buffer)
 		if err != nil {
@@ -55,7 +56,7 @@ func ping(targets []string) {
 
 func main() {
 
-	/**/
+	// UDP Server which listens for Ping
 	go Server()
 	ticker := time.NewTicker(1000 * time.Millisecond)
 
@@ -121,7 +122,6 @@ func main() {
 					log.Println("hii", err)
 				}
 
-				// fmt.Println(membership.Members)
 				membership.PrintMembershipList()
 				conn.Close()
 			} else {
@@ -144,8 +144,6 @@ func main() {
 
 func handleUDPConnection(conn *net.UDPConn) {
 
-	// here is where you want to do stuff like read or write to client
-
 	buffer := make([]byte, 1024)
 
 	_, addr, err := conn.ReadFromUDP(buffer)
@@ -160,7 +158,6 @@ func handleUDPConnection(conn *net.UDPConn) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	// write message back to client
 	message := membersByte
 	_, err = conn.WriteToUDP(message, addr)
 
@@ -187,8 +184,6 @@ func Server() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("UDP server up and listening on port 8001")
 
 	defer ln.Close()
 

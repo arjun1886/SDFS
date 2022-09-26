@@ -72,13 +72,6 @@ func main() {
 			select {
 			case _ = <-ticker.C:
 				targets := membership.GetTargets()
-				log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
-				for i := 0; i < len(*membership.Members); i++ {
-					fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
-						(*membership.Members)[i].State)
-					/*log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
-					(*Members)[i].State)*/
-				}
 				if len(targets) >= 1 {
 					ping(targets)
 				} else if len(*membership.Members) == 0 {
@@ -125,12 +118,10 @@ func handleUDPConnection(conn *net.UDPConn) {
 func handleTCPConnection(conn net.Conn) {
 
 	buffer := make([]byte, 1024)
-	//var hostName string
 	n, err := conn.Read(buffer)
-	//json.Unmarshal(buffer[:n], &hostName)
 	log.Println(string(buffer[:n]))
 	membership.PrintMembershipList()
-
+	// Introducer allows the process to join the network
 	introducer.JoinNetwork(string(buffer[:n]) + ":" + strconv.FormatInt(time.Now().Unix(), 10))
 	membersByte, err := json.Marshal(membership.Members)
 	if err != nil {
