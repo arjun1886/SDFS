@@ -73,7 +73,8 @@ func main() {
 	}()
 
 	for {
-		arg := os.Args[1]
+		var arg string
+		fmt.Scanf("%s", &arg)
 		if arg == "JOIN" {
 			isPartOfNetwork := false
 			membershipStruct := membership.Membership{}
