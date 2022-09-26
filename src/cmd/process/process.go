@@ -19,8 +19,6 @@ func ping(targets []string) {
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "8001"
 		service := hostName + ":" + portNum
-		//RemoteAddr, err := net.ResolveUDPAddr("udp", service)
-		//conn, err := net.DialTimeout("udp", service, 1*time.Second)
 		RemoteAddr, err := net.ResolveUDPAddr("udp", service)
 		conn, err := net.DialUDP("udp", nil, RemoteAddr)
 		if err != nil {
@@ -57,71 +55,14 @@ func ping(targets []string) {
 
 func main() {
 
-	isPartOfNetwork := false
-	membershipStruct := membership.Membership{}
-	members := membershipStruct.GetMembers()
-	for i := 0; i < len(*members); i++ {
-		endpoint := strings.Split((*members)[i].ProcessId, ":")[0]
-		if endpoint == membership.Self {
-			isPartOfNetwork = true
-			break
-		}
-	}
-
-	if !isPartOfNetwork {
-		request, _ := os.Hostname()
-		servAddr := conf.IntroducerEndpoint
-		tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
-		if err != nil {
-			println("ResolveTCPAddr failed:", err.Error())
-			os.Exit(1)
-		}
-
-		conn, err := net.DialTCP("tcp", nil, tcpAddr)
-		if err != nil {
-			println("Dial failed:", err.Error())
-			os.Exit(1)
-		}
-
-		_, err = conn.Write([]byte(request))
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		println("write to server = ", request)
-		log.Println("write to server=", request)
-
-		reply := make([]byte, 1024)
-
-		n, err := conn.Read(reply)
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		err = json.Unmarshal(reply[:n], membership.Members)
-		if err != nil {
-			log.Println("hii", err)
-		}
-
-		// fmt.Println(membership.Members)
-		membership.PrintMembershipList()
-		conn.Close()
-	}
-
+	/**/
 	go Server()
-
 	ticker := time.NewTicker(1000 * time.Millisecond)
+
 	go func() {
 		for {
 			select {
 			case _ = <-ticker.C:
-				log.Printf("Process Id\t\tIncarnation Number\t\tState\n")
-				for i := 0; i < len(*membership.Members); i++ {
-					fmt.Printf("%s\t\t%d\t\t%s\n", (*membership.Members)[i].ProcessId, (*membership.Members)[i].IncarnationNumber,
-						(*membership.Members)[i].State)
-				}
 				targets := membership.GetTargets()
 				if len(targets) >= 1 {
 					ping(targets)
@@ -129,7 +70,79 @@ func main() {
 			}
 		}
 	}()
-	select {}
+
+	for {
+		arg := os.Args[1]
+		if arg == "JOIN" {
+			isPartOfNetwork := false
+			membershipStruct := membership.Membership{}
+			members := membershipStruct.GetMembers()
+			for i := 0; i < len(*members); i++ {
+				endpoint := strings.Split((*members)[i].ProcessId, ":")[0]
+				if endpoint == membership.Self {
+					isPartOfNetwork = true
+					break
+				}
+			}
+			if !isPartOfNetwork {
+				request, _ := os.Hostname()
+				servAddr := conf.IntroducerEndpoint
+				tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
+				if err != nil {
+					println("ResolveTCPAddr failed:", err.Error())
+					os.Exit(1)
+				}
+
+				conn, err := net.DialTCP("tcp", nil, tcpAddr)
+				if err != nil {
+					println("Dial failed:", err.Error())
+					os.Exit(1)
+				}
+
+				_, err = conn.Write([]byte(request))
+				if err != nil {
+					println("Write to server failed:", err.Error())
+					os.Exit(1)
+				}
+
+				println("write to server = ", request)
+				log.Println("write to server=", request)
+
+				reply := make([]byte, 1024)
+
+				n, err := conn.Read(reply)
+				if err != nil {
+					println("Write to server failed:", err.Error())
+					os.Exit(1)
+				}
+
+				err = json.Unmarshal(reply[:n], membership.Members)
+				if err != nil {
+					log.Println("hii", err)
+				}
+
+				// fmt.Println(membership.Members)
+				membership.PrintMembershipList()
+				conn.Close()
+			} else {
+				fmt.Println("Already in network")
+			}
+		} else if arg == "LEAVE" {
+			membershipStruct := membership.Membership{}
+			membershipStruct.LeaveNetwork()
+		} else if arg == "LIST MEM" {
+			membership.PrintMembershipList()
+		} else {
+			for i := 0; i < len(*membership.Members); i++ {
+				endpoint := strings.Split((*membership.Members)[i].ProcessId, ":")[0]
+				if endpoint == membership.Self {
+					fmt.Println((*membership.Members)[i].ProcessId)
+				}
+			}
+		}
+	}
+
+	//select {}
 
 }
 

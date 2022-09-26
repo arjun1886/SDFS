@@ -21,8 +21,7 @@ type Membership struct {
 
 // function to check if values of struct Member are deeply equal
 func areMembersEqual(member1, member2 conf.Member) bool {
-	return member1.ProcessId == member2.ProcessId && member1.State == member2.State
-	&& member1.IncarnationNumber == member2.IncarnationNumber
+	return member1.ProcessId == member2.ProcessId && member1.State == member2.State && member1.IncarnationNumber == member2.IncarnationNumber
 }
 
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
