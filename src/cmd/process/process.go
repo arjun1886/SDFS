@@ -14,7 +14,7 @@ import (
 
 func ping(targets []string) {
 	for i := 0; i < len(targets); i++ {
-		fmt.Println("Targets:", targets)
+		// fmt.Println("Targets:", targets)
 
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "8001"
@@ -131,9 +131,9 @@ func main() {
 		} else if arg == "LEAVE" {
 			membershipStruct := membership.Membership{}
 			membershipStruct.LeaveNetwork()
-		} else if arg == "LIST MEM" {
+		} else if arg == "LIST_MEM" {
 			membership.PrintMembershipList()
-		} else {
+		} else if arg == "LIST_SELF" {
 			hostName, _ := os.Hostname()
 			membership.PrintSelfId(hostName)
 		}
