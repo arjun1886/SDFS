@@ -43,16 +43,6 @@ Running executable:
 
 Open Terminal and run these commands.
 
-To run worker (on all VMs):
-```sh
-cd cs-425-mp1/src/cmd/process/
-```
-
-
-```sh
-./process
-```
-
 To run introducer (typically on VM2):
 
 ```sh
@@ -63,8 +53,32 @@ cd cs-425-mp1/src/cmd/introducer/
 ```sh
 ./introducer
 ```
-
 ***
+To run node process (on all VMs):
+```sh
+cd cs-425-mp1/src/cmd/process/
+```
+
+
+```sh
+./process
+```
+***
+To run commands on node process (on all VMs):
+```sh
+JOIN
+```
+
+
+```sh
+LIST_MEM
+```
+```sh
+LIST_SELF
+```
+```sh
+LEAVE
+```
 
 # MP1
 ***
