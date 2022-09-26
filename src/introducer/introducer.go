@@ -9,6 +9,7 @@ func JoinNetwork(processId string) {
 	addMember(processId)
 }
 
+// Each member contains process ID, state and incarnation number
 func addMember(processId string) {
 	members := membership.Members
 	newMember := conf.Member{
