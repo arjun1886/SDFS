@@ -18,6 +18,7 @@ import (
 )
 
 var FileNames = &[]string{}
+var FileToServerMapping = &map[string][]string{}
 
 type SdfsServer struct {
 	UnimplementedSdfsServerServer
@@ -212,49 +213,55 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-func Replication(file string) error {
+func Replication() error {
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
+
 	sdfsServerStruct := SdfsServer{}
-	fileName := strings.Split(file, "_")[0]
-	existingReplicas := Ls(fileName)
-	flag := 0
-	numReplicas := len(existingReplicas)
 
-	if numReplicas == 5 {
-		//for i := 0; i < 5; i++ {
-		//	sdfsServerStruct.put(fileName, existingReplicas[i])
-		//}
-		return nil
-	}
+	for n := 0; n < len(*FileNames); n++ {
+		fileName := strings.Split((*FileNames)[n], "_")[0]
+		existingReplicas := Ls(fileName)
+		flag := 0
+		numReplicas := len(existingReplicas)
 
-	requiredReplicas := 5 - numReplicas
-
-	mainReplicaIndex := hash(fileName) % uint32(len(*members))
-
-	// See if primary replica already exists
-	for i := 0; i < len(existingReplicas); i++ {
-		if mainReplicaIndex == uint32(existingReplicas[i][14]) {
-			flag = 1
+		if numReplicas == 5 {
+			continue
 		}
-	}
-	// If it doesn't exist, find and put in primary replica
-	if flag == 0 {
-		for i := 0; i < len(*members); i++ {
-			if mainReplicaIndex == uint32((*members)[i].processId[14]) {
-				sdfsServerStruct.put(fileName, (*members)[i])
+		requiredReplicas := 5 - numReplicas
+
+		mainReplicaIndex := hash(fileName) % uint32(len(*members))
+
+		// See if primary replica already exists
+		for i := 0; i < len(existingReplicas); i++ {
+			if mainReplicaIndex == uint32(existingReplicas[i][14]) {
+				flag = 1
 			}
 		}
-	}
 
-	// Linearly scan to find and put in next replicas
-	j := (int(mainReplicaIndex) + 1) % len(*members)
-	for requiredReplicas > 0 {
-		if !Contains(existingReplicas, members[j]) {
-			sdfsServerStruct.put(fileName, members[j])
-			requiredReplicas -= 1
-			j = (j + 1) % len(*members)
+		// If it doesn't exist, find and put in primary replica
+		if flag == 0 {
+			for i := 0; i < len(*members); i++ {
+				if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
+					sdfsServerStruct.put(fileName, members[i])
+				}
+
+			}
 		}
+
+		// Linearly scan to find and put in next replicas
+		j := (int(mainReplicaIndex) + 1) % len(*members)
+		for requiredReplicas > 0 {
+			if !Contains(existingReplicas, members[j]) {
+				sdfsServerStruct.put(fileName, members[j])
+				requiredReplicas -= 1
+				j = (j + 1) % len(*members)
+			}
+		}
+
+		// Update global map
+		targets := GetReplicaTargets(file)
+		(*FileToServerMapping)[fileName] = targets
 	}
 	return nil
 }
@@ -282,9 +289,7 @@ func GetReplicaTargets(file string) []string {
 			j = (j + 1) % len(*members)
 		}
 	}
-
 	return hostNames
-
 }
 
 func Contains(list []string, element string) bool {
