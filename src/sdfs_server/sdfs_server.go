@@ -241,8 +241,8 @@ func Replication(file string) error {
 	// If it doesn't exist, find and put in primary replica
 	if flag == 0 {
 		for i := 0; i < len(*members); i++ {
-			if mainReplicaIndex == uint32((*members)[i][14]) {
-				sdfsServerStruct.put(fileName, members[i])
+			if mainReplicaIndex == uint32((*members)[i].processId[14]) {
+				sdfsServerStruct.put(fileName, (*members)[i])
 			}
 		}
 	}
