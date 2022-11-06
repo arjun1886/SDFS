@@ -3,13 +3,19 @@ package main
 import (
 	"CS425/cs-425-mp1/src/conf"
 	"CS425/cs-425-mp1/src/membership"
+	"CS425/cs-425-mp1/src/sdfs_server"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 func ping(targets []string) {
@@ -140,6 +146,135 @@ func main() {
 		} else if arg == "LIST_SELF" {
 			hostName, _ := os.Hostname()
 			membership.PrintSelfId(hostName)
+		} else if arg == "PUT" {
+			targetReplicas := sdfs_server.GetTargetReplicas()
+			localFileName := ""
+			SdfsFileName := ""
+			// Channel used to store a max of 5 put outputs
+			nodeOutputChan := make(chan sdfs_server.PutOutput, 5)
+			nodeOutputList := []sdfs_server.PutOutput{}
+			ctx := context.Background()
+			var wg sync.WaitGroup
+			// Tell the 'wg' WaitGroup how many threads/goroutines
+			//	that are about to run concurrently.
+			wg.Add(len(targetReplicas))
+			for i := 0; i < len(targetReplicas); i++ {
+				// Spawn a thread for each iteration in the loop.
+				go func(ctx context.Context, localFileName string, target string, nodeOutputChan chan sdfs_server.PutOutput) {
+					// At the end of the goroutine, tell the WaitGroup
+					//   that another thread has completed.
+					defer wg.Done()
+					var conn *grpc.ClientConn
+					putOutput := &sdfs_server.PutOutput{}
+					conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+					if err != nil {
+						putOutput.Success = false
+					} else {
+						defer conn.Close()
+						s := sdfs_server.NewSdfsServerClient(conn)
+						putClient, err := s.Put(ctx)
+
+						fil, err := os.Open(localFileName)
+						if err != nil {
+							putOutput.Success = false
+						}
+
+						// Maximum 1KB size per stream.
+						buf := make([]byte, 1024)
+
+						for {
+							num, err := fil.Read(buf)
+							if err == io.EOF {
+								break
+							}
+							if err != nil {
+								putOutput.Success = false
+							}
+							putInput := sdfs_server.PutInput{}
+							putInput.FileName = SdfsFileName
+							putInput.Chunk = buf[:num]
+							if err := putClient.Send(&putInput); err != nil {
+								putOutput.Success = false
+							}
+						}
+
+						putOutput, err = putClient.CloseAndRecv()
+						if err != nil {
+							putOutput.Success = false
+						}
+					}
+					nodeOutputChan <- *putOutput
+				}(ctx, localFileName, targetReplicas[i], nodeOutputChan)
+				nodeOutputList = append(nodeOutputList, <-nodeOutputChan)
+			}
+			// Wait for `wg.Done()` to be executed the number of times
+			//   specified in the `wg.Add()` call.
+			// `wg.Done()` should be called the exact number of times
+			//   that was specified in `wg.Add()`.
+			wg.Wait()
+			close(nodeOutputChan)
+			successCount := 0
+			for i := 0; i < len(nodeOutputList); i++ {
+				if nodeOutputList[i].Success == true {
+					successCount += 1
+				}
+			}
+			if successCount >= 4 {
+				fmt.Println("Write Successful")
+			}
+		} else if arg == "Store" {
+			fmt.Println(sdfs_server.Store())
+		} else if arg == "Get" {
+			ctx := context.Background()
+			var conn *grpc.ClientConn
+			target := ""
+			localFileName := ""
+			sdfsFileName := ""
+			getOutput := &sdfs_server.GetOutput{}
+			conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+			if err != nil {
+				fmt.Println("Failed to connect to SDFS to get file")
+			} else {
+				defer conn.Close()
+				s := sdfs_server.NewSdfsServerClient(conn)
+				getInput := sdfs_server.GetInput{}
+				getInput.FileName = sdfsFileName
+				stream, err := s.Get(ctx, &getInput)
+				if err != nil {
+					fmt.Println("Failed to make Get call to SDFS to get file")
+				}
+
+				for {
+					getOutput, err = stream.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						fmt.Println("Failed to get file from stream")
+					}
+
+					f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+					if err != nil {
+						fmt.Println("Failed to open local file to write from stream")
+					}
+
+					defer f.Close()
+
+					n, err := f.Write(getOutput.GetChunk())
+					if err != nil {
+						fmt.Println("Failed to write to local file from stream")
+					}
+
+					if n != len(getOutput.GetChunk()) {
+						fmt.Println("Could not complete full write into file")
+					}
+				}
+
+				fmt.Println("Successfully completed Get call to Sdfs")
+
+			}
+		} else if arg == "Delete" {
+
 		}
 	}
 
@@ -197,4 +332,20 @@ func Server() {
 		handleUDPConnection(ln)
 	}
 
+}
+
+func SdfsServer() {
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8003))
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+
+	sdfs_server.RegisterSdfsServerServer(grpcServer, sdfs_server.UnimplementedSdfsServerServer{})
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %s", err)
+	}
 }

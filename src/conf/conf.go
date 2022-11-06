@@ -50,6 +50,7 @@ type Member struct {
 	IncarnationNumber int
 	State             string
 	ProcessId         string
+	FileNames         []string
 }
 
 func GetCoordinatorConfigs() CoordinatorConfigs {
@@ -101,4 +102,9 @@ func GetWorkerConfigs() []WorkerConfig {
 			LogFileName: LogFileName10,
 		},
 	}
+}
+
+type FileData struct {
+	FileName string
+	Data     []byte
 }

@@ -3,8 +3,11 @@ package sdfs_server
 import (
 	"CS425/cs-425-mp1/src/conf"
 	"CS425/cs-425-mp1/src/membership"
+	"bufio"
+	context "context"
 	"errors"
 	"hash/fnv"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,7 +19,7 @@ import (
 
 var FileNames = &[]string{}
 
-type sdfsServer struct {
+type SdfsServer struct {
 	UnimplementedSdfsServerServer
 }
 
@@ -52,9 +55,25 @@ func UpdateFileNames() error {
 	return nil
 }
 
+func (s *SdfsServer) Put(ctx context.Context, stream SdfsServer_PutServer) error {
+	req, err := stream.Recv()
+	if err == io.EOF {
+		fileObject := conf.FileData{}
+		fileObject.FileName = req.GetFileName()
+		fileObject.Data = req.GetChunk()
+		err := Put(fileObject)
+		if err != nil {
+			return nil
+		}
+	}
+	putOutput := PutOutput{}
+	putOutput.Success = true
+	return stream.SendAndClose(&putOutput)
+}
+
 func Put(fileObject conf.FileData) error {
 
-	file := fileObjectde.FileName
+	file := fileObject.FileName
 	fileName := strings.Split(file, ".")[0]
 	fileName = fileName + "_ver_" + strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -78,6 +97,44 @@ func Put(fileObject conf.FileData) error {
 	return err
 }
 
+func (s *SdfsServer) Get(fileName string, srv SdfsServer_GetServer) error {
+
+	f, err := os.Open("thermopylae.txt")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	buf := make([]byte, 1024)
+
+	for {
+		n, err := reader.Read(buf)
+
+		if err != nil {
+
+			if err != io.EOF {
+
+				log.Fatal(err)
+			}
+
+			break
+		}
+
+		getOutput := GetOutput{}
+		getOutput.Chunk = buf[0:n]
+		err = srv.Send(&getOutput)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
 func Delete(fileName string) error {
 	fileNameModified := strings.Split(fileName, ".")[0]
 	files, err := ioutil.ReadDir("../../sdfs_dir")
@@ -91,6 +148,20 @@ func Delete(fileName string) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+}
+
+func DeleteAllFiles() error {
+	files, err := ioutil.ReadDir("../../sdfs_dir")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		err := os.Remove(file.Name())
+		if err != nil {
+			return err
 		}
 	}
 }
@@ -144,7 +215,7 @@ func hash(s string) uint32 {
 func Replication(file string) error {
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
-	sdfsServerStruct := sdfsServer{}
+	sdfsServerStruct := SdfsServer{}
 	fileName := strings.Split(file, "_")[0]
 	existingReplicas := Ls(fileName)
 	flag := 0
@@ -170,7 +241,7 @@ func Replication(file string) error {
 	// If it doesn't exist, find and put in primary replica
 	if flag == 0 {
 		for i := 0; i < len(*members); i++ {
-			if mainReplicaIndex == uint32(members[i][14]) {
+			if mainReplicaIndex == uint32((*members)[i][14]) {
 				sdfsServerStruct.put(fileName, members[i])
 			}
 		}
