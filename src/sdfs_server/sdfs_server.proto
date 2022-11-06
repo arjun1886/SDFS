@@ -1,0 +1,60 @@
+syntax = "proto3";
+package sdfs_server;
+
+option go_package = "./sdfs_server";
+
+message PutInput {
+    string fileName = 1;
+    bytes chunk = 2;
+}
+
+message PutOutput {
+    bool success = 1;
+}
+
+message DeleteInput {
+    string fileName = 1;
+}
+
+message DeleteOutput {
+    bool success = 1;
+}
+
+message GetInput {
+    string fileName = 1;
+}
+
+message GetOutput {
+    bytes chunk = 1;
+}
+
+message LsInput {
+}
+
+message LsOutput {
+    repeated string listOfMachines = 1;
+}
+
+message StoreInput {
+}
+
+message StoreOutput {
+    repeated string listOfFiles = 1;
+}
+
+message GetNumVersionsInput {
+    string fileName = 1;
+}
+
+message GetNumVersionsOutput {
+    bytes chunk = 1;
+}
+
+service SdfsServer {
+  rpc Put(stream PutInput) returns (PutOutput) {}
+  rpc Delete(DeleteInput) returns (DeleteOutput) {}
+  rpc Get(GetInput) returns (stream GetOutput) {}
+  rpc Ls(LsInput) returns (LsOutput) {}
+  rpc Store(StoreInput) returns (StoreOutput) {}
+  rpc GetNumVersions(GetNumVersionsInput) returns (stream GetNumVersionsOutput) {}
+}
