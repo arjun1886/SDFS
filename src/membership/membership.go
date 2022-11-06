@@ -2,6 +2,7 @@ package membership
 
 import (
 	"CS425/cs-425-mp1/src/conf"
+	"CS425/cs-425-mp1/src/sdfs/operations"
 	"log"
 	"os"
 	"strings"
@@ -21,6 +22,17 @@ type Membership struct {
 // areMembersEqual: function to check if values of struct Member are deeply equal
 func areMembersEqual(member1, member2 conf.Member) bool {
 	return member1.ProcessId == member2.ProcessId && member1.State == member2.State && member1.IncarnationNumber == member2.IncarnationNumber
+}
+
+func UpdateFileNames() {
+	members := *Members
+	for i := 0; i < len(members); i++ {
+		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
+		if endpoint == Self {
+			(members)[i].FileNames = *operations.FileNames
+		}
+	}
+	return
 }
 
 func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
