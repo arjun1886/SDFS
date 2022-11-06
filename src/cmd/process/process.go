@@ -86,6 +86,7 @@ func main() {
 		var arg string
 		fmt.Scanf("%s", &arg)
 		if arg == "JOIN" {
+			_ = sdfs_server.DeleteAllFiles()
 			isPartOfNetwork := false
 			membershipStruct := membership.Membership{}
 			members := membershipStruct.GetMembers()
@@ -222,9 +223,7 @@ func main() {
 			if successCount >= 4 {
 				fmt.Println("Write Successful")
 			}
-		} else if arg == "Store" {
-			fmt.Println(sdfs_server.Store())
-		} else if arg == "Get" {
+		} else if arg == "get" {
 			ctx := context.Background()
 			var conn *grpc.ClientConn
 			target := ""
@@ -273,8 +272,70 @@ func main() {
 				fmt.Println("Successfully completed Get call to Sdfs")
 
 			}
-		} else if arg == "Delete" {
+		} else if arg == "delete" {
+			sdfsFileName := ""
+			if val, ok := sdfs_server.FileToServerMapping[sdfsFileName]; ok {
+				targetReplicas := val
+				sdfsFileName := ""
+				// Channel used to store a max of 5 delete outputs
+				deleteOutputChan := make(chan sdfs_server.DeleteOutput, 5)
+				deleteOutputList := []sdfs_server.DeleteOutput{}
+				ctx := context.Background()
+				var wg sync.WaitGroup
+				// Tell the 'wg' WaitGroup how many threads/goroutines
+				//	that are about to run concurrently.
+				wg.Add(len(targetReplicas))
+				for i := 0; i < len(targetReplicas); i++ {
+					// Spawn a thread for each iteration in the loop.
+					go func(ctx context.Context, target string, fileName, deleteOutputChan chan sdfs_server.DeleteOutput) {
+						// At the end of the goroutine, tell the WaitGroup
+						//   that another thread has completed.
+						defer wg.Done()
+						var conn *grpc.ClientConn
+						deleteOutput := &sdfs_server.DeleteOutput{}
+						conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+						if err != nil {
+							deleteOutput.Success = false
+						} else {
+							defer conn.Close()
+							s := sdfs_server.NewSdfsServerClient(conn)
+							deleteInput := sdfs_server.DeleteInput{FileName: sdfsFileName}
+							deleteOutput, err = s.Delete(ctx, &deleteInput)
 
+							if err != nil {
+								deleteOutput.Success = false
+							}
+						}
+						deleteOutputChan <- *deleteOutput
+					}(ctx, targetReplicas[i], sdfsFileName, deleteOutputChan)
+					deleteOutputList = append(deleteOutputList, <-deleteOutputChan)
+				}
+				// Wait for `wg.Done()` to be executed the number of times
+				//   specified in the `wg.Add()` call.
+				// `wg.Done()` should be called the exact number of times
+				//   that was specified in `wg.Add()`.
+				wg.Wait()
+				close(deleteOutputChan)
+				successCount := 0
+				for i := 0; i < len(deleteOutputList); i++ {
+					if deleteOutputList[i].Success == true {
+						successCount += 1
+					}
+				}
+				if successCount == len(targetReplicas) {
+					fmt.Println("Delete Successful")
+				} else {
+					fmt.Println("Delete Failed")
+				}
+			}
+		} else if arg == "get-versions" {
+
+		} else if arg == "store" {
+			fmt.Println(sdfs_server.Store())
+		} else if arg == "ls" {
+			sdfsFileName := ""
+			hostNames := sdfs_server.Ls(sdfsFileName)
+			fmt.Println(hostNames)
 		}
 	}
 
