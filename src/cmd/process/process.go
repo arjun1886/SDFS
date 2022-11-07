@@ -149,17 +149,45 @@ func main() {
 			localFileName := ""
 			sdfsFileName := ""
 			err := sdfs_server.PutUtil(localFileName, sdfsFileName)
-			fmt.Println(err)
+			if err != nil {
+				fmt.Println("Failed to perform put call : ", err)
+			} else {
+				fmt.Println("put call successful")
+			}
 		} else if arg == "get" {
 			target := ""
 			localFileName := ""
 			sdfsFileName := ""
-			err := sdfs_server.GetUtil(target, localFileName, sdfsFileName)
-			fmt.Println(err)
+			readAck := 2
+			nodeToFileArray := sdfs_server.GetReadTargetsInLatestOrder(sdfsFileName, 1)
+			flag := true
+			for i := 0; i < readAck; i++ {
+				if flag != true {
+					for j := 0; i < len(nodeToFileArray[i].FileVersion[0]); j++ {
+						err := sdfs_server.GetUtil(target, localFileName, sdfsFileName)
+						if err != nil {
+							flag = false
+							sdfs_server.ClearFile(localFileName)
+						} else {
+							flag = true
+							break
+						}
+					}
+				}
+			}
+			if flag == true {
+				fmt.Println("get call successful")
+			} else {
+				fmt.Println("failed to perform get call")
+			}
 		} else if arg == "delete" {
 			sdfsFileName := ""
 			err := sdfs_server.DeleteUtil(sdfsFileName)
-			fmt.Println(err)
+			if err != nil {
+				fmt.Println("Failed to perform delete : ", err)
+			} else {
+				fmt.Println("Delete successful")
+			}
 		} else if arg == "get-versions" {
 			numVersions := 5
 			sdfsFileName := ""
@@ -167,9 +195,10 @@ func main() {
 			readAck := 2
 			err := sdfs_server.GetNumVersionsUtil(sdfsFileName, numVersions, localFileName, readAck)
 			if err != nil {
-				fmt.Println("Failed to get file name versions")
+				fmt.Println("Failed to get file name versions : ", err)
+			} else {
+				fmt.Println("Get num versions successful")
 			}
-			fmt.Println("Get num versions successful")
 		} else if arg == "store" {
 			fmt.Println(sdfs_server.Store())
 		} else if arg == "ls" {

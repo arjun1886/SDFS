@@ -108,7 +108,7 @@ func Put(fileObject conf.FileData) error {
 
 func (s *SdfsServer) Get(fileName string, srv SdfsServer_GetServer) error {
 
-	f, err := os.Open("thermopylae.txt")
+	f, err := os.Open("../../sdfs_dir/" + fileName)
 
 	if err != nil {
 		log.Fatal(err)
@@ -179,16 +179,13 @@ func DeleteAllFiles() error {
 }
 
 func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, readAck int) error {
-	nodeToFilesArray, err := GetNumVersionsFileNames(fileName, numVersions)
-	if err != nil {
-		return err
-	}
+	nodeToFilesArray := GetReadTargetsInLatestOrder(fileName, numVersions)
 
 	flag := true
 	for i := 0; i < readAck; i++ {
 		flag = true
-		for j := 0; j < len(nodeToFilesArray[i].FileNames); j++ {
-			err := GetUtil(nodeToFilesArray[i].ProcessId, localFileName, nodeToFilesArray[i].FileNames[j])
+		for j := 0; j < len(nodeToFilesArray[i].FileVersion); j++ {
+			err := GetUtil(nodeToFilesArray[i].ProcessId, localFileName, nodeToFilesArray[i].FileVersion[j])
 			if err != nil {
 				flag = false
 				break
@@ -275,15 +272,13 @@ func Replication() error {
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
 
-	sdfsServerStruct := SdfsServer{}
-
-	newFileToServerMapping := &map[string][]string{}
+	newFileToServerMapping := map[string][]string{}
 
 	for i := 0; i < len(*members); i++ {
 		fileNames := (*members)[i].FileNames
 		for n := 0; n < len(fileNames); n++ {
 			fileName := strings.Split((fileNames)[n], "_")[0]
-			if _, ok := (*newFileToServerMapping)[fileName]; !ok {
+			if _, ok := newFileToServerMapping[fileName]; !ok {
 				continue
 			}
 			existingReplicas := Ls(fileName)
@@ -308,8 +303,8 @@ func Replication() error {
 			if flag == 0 {
 				for i := 0; i < len(*members); i++ {
 					if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
-						if *members[i].State == "ACTIVE" {
-							sdfsServerStruct.put(fileName, members[i])
+						if (*members)[i].State == "ACTIVE" {
+							PutUtil(fileName, (*members)[i].ProcessId)
 							break
 						} else {
 							mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
@@ -321,8 +316,8 @@ func Replication() error {
 			// Linearly scan to find and put in next replicas
 			j := (int(mainReplicaIndex) + 1) % len(*members)
 			for requiredReplicas > 0 {
-				if !Contains(existingReplicas, members[j]) && *members[j].State == "ACTIVE" {
-					sdfsServerStruct.put(fileName, members[j])
+				if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+					PutUtil(fileName, (*members)[j].ProcessId)
 					requiredReplicas -= 1
 					j = (j + 1) % len(*members)
 				}
@@ -330,7 +325,7 @@ func Replication() error {
 
 			// Update global map
 			targets := GetReplicaTargets(fileNames[n])
-			(*newFileToServerMapping)[fileName] = targets
+			newFileToServerMapping[fileName] = targets
 		}
 	}
 	FileToServerMapping = newFileToServerMapping
@@ -355,8 +350,8 @@ func GetReplicaTargets(file string) []string {
 
 	j := (int(mainReplicaIndex)) % len(*members)
 	for requiredReplicas > 0 {
-		if !Contains(existingReplicas, *members[j]) && *members[j].State == "ACTIVE" {
-			// sdfsServerStruct.put(fileName, members[j])
+		if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+			// sdfsServerStruct.put(fileName, (*members)[j])
 			hostNames = append(hostNames, (*members)[j].ProcessId)
 			requiredReplicas -= 1
 			j = (j + 1) % len(*members)
@@ -376,7 +371,7 @@ func Contains(list []string, element string) bool {
 	return result
 }
 
-func getReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
+func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
@@ -474,7 +469,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 			}
 		}
 
-		errors.New("Successfully completed Get call to Sdfs")
+		return nil
 	}
 }
 
@@ -535,7 +530,7 @@ func DeleteUtil(sdfsFileName string) error {
 }
 
 func PutUtil(localFileName, sdfsFileName string) error {
-	targetReplicas := GetTargetReplicas()
+	targetReplicas := GetReplicaTargets(sdfsFileName)
 	// Channel used to store a max of 5 put outputs
 	nodeOutputChan := make(chan PutOutput, 5)
 	nodeOutputList := []PutOutput{}
