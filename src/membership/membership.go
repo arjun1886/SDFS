@@ -273,7 +273,11 @@ func PrintMembershipList() {
 	for i := 0; i < len(*Members); i++ {
 		/*fmt.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
 		(*Members)[i].State)*/
-		log.Printf("%s\t\t%d\t\t%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
-			(*Members)[i].State)
+		fileNameString := ""
+		for j := 0; j < len((*Members)[i].FileNames); j++ {
+			fileNameString += (*Members)[i].FileNames[j] + " "
+		}
+		log.Printf("%s\t\t%d\t\t%s\n%s\n", (*Members)[i].ProcessId, (*Members)[i].IncarnationNumber,
+			(*Members)[i].State, fileNameString)
 	}
 }

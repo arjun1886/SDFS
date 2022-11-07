@@ -269,67 +269,73 @@ func hash(s string) uint32 {
 }
 
 func Replication() error {
-	membershipStruct := membership.Membership{}
-	members := membershipStruct.GetMembers()
+	for {
+		time.Sleep(1 * time.Second)
+		membershipStruct := membership.Membership{}
+		members := membershipStruct.GetMembers()
 
-	newFileToServerMapping := map[string][]string{}
+		newFileToServerMapping := map[string][]string{}
 
-	for i := 0; i < len(*members); i++ {
-		fileNames := (*members)[i].FileNames
-		for n := 0; n < len(fileNames); n++ {
-			fileName := strings.Split((fileNames)[n], "_")[0]
-			if _, ok := newFileToServerMapping[fileName]; !ok {
-				continue
-			}
-			existingReplicas := Ls(fileName)
-			flag := 0
-			numReplicas := len(existingReplicas)
-
-			if numReplicas == 5 {
-				continue
-			}
-			requiredReplicas := 5 - numReplicas
-
-			mainReplicaIndex := hash(fileName) % uint32(len(*members))
-
-			// See if primary replica already exists
-			for i := 0; i < len(existingReplicas); i++ {
-				if mainReplicaIndex == uint32(existingReplicas[i][14]) {
-					flag = 1
+		for i := 0; i < len(*members); i++ {
+			fileNames := (*members)[i].FileNames
+			for n := 0; n < len(fileNames); n++ {
+				fileName := strings.Split((fileNames)[n], "_")[0]
+				if _, ok := newFileToServerMapping[fileName]; !ok {
+					continue
 				}
-			}
+				existingReplicas := Ls(fileName)
+				flag := 0
+				numReplicas := len(existingReplicas)
 
-			// If it doesn't exist, find and put in primary replica
-			if flag == 0 {
-				for i := 0; i < len(*members); i++ {
-					if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
-						if (*members)[i].State == "ACTIVE" {
-							PutUtil(fileName, (*members)[i].ProcessId)
-							break
-						} else {
-							mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
+				if numReplicas == 5 {
+					continue
+				}
+				requiredReplicas := 5 - numReplicas
+
+				mainReplicaIndex := hash(fileName) % uint32(len(*members))
+
+				// See if primary replica already exists
+				for i := 0; i < len(existingReplicas); i++ {
+					if mainReplicaIndex == uint32(existingReplicas[i][14]) {
+						flag = 1
+					}
+				}
+
+				// If it doesn't exist, find and put in primary replica
+				if flag == 0 {
+					for i := 0; i < len(*members); i++ {
+						if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
+							if (*members)[i].State == "ACTIVE" {
+								nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+								_ = GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+								PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})								break
+							} else {
+								mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
+							}
 						}
 					}
 				}
-			}
 
-			// Linearly scan to find and put in next replicas
-			j := (int(mainReplicaIndex) + 1) % len(*members)
-			for requiredReplicas > 0 {
-				if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
-					PutUtil(fileName, (*members)[j].ProcessId)
-					requiredReplicas -= 1
-					j = (j + 1) % len(*members)
+				// Linearly scan to find and put in next replicas
+				j := (int(mainReplicaIndex) + 1) % len(*members)
+				for requiredReplicas > 0 {
+					if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+						nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+						_ = GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+						PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})
+						requiredReplicas -= 1
+						j = (j + 1) % len(*members)
+					}
 				}
-			}
 
-			// Update global map
-			targets := GetReplicaTargets(fileNames[n])
-			newFileToServerMapping[fileName] = targets
+				// Update global map
+				targets := GetReplicaTargets(fileNames[n])
+				newFileToServerMapping[fileName] = targets
+			}
 		}
+		membership.FileToServerMapping = newFileToServerMapping
+		return nil
 	}
-	membership.FileToServerMapping = newFileToServerMapping
-	return nil
 }
 
 func GetReplicaTargets(file string) []string {
@@ -535,8 +541,7 @@ func DeleteUtil(sdfsFileName string) error {
 	return nil
 }
 
-func PutUtil(localFileName, sdfsFileName string) error {
-	targetReplicas := GetReplicaTargets(sdfsFileName)
+func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error {
 	// Channel used to store a max of 5 put outputs
 	nodeOutputChan := make(chan PutOutput, 5)
 	nodeOutputList := []PutOutput{}

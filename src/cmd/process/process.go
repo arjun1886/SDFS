@@ -64,7 +64,7 @@ func main() {
 	go Server()
 	go SdfsServer()
 	ticker := time.NewTicker(1000 * time.Millisecond)
-
+	go sdfs_server.Replication()
 	go func() {
 		for {
 			select {
@@ -82,7 +82,10 @@ func main() {
 		var arg string
 		fmt.Scanf("%s", &arg)
 		if arg == "JOIN" {
-			_ = sdfs_server.DeleteAllFiles()
+			err := sdfs_server.DeleteAllFiles()
+			if err != nil {
+				fmt.Println("could not delete files before joining : ", err)
+			}
 			isPartOfNetwork := false
 			membershipStruct := membership.Membership{}
 			members := membershipStruct.GetMembers()
@@ -148,7 +151,8 @@ func main() {
 			var command string
 			var localFileName string
 			fmt.Scanf("%s%s%s", &command, &localFileName, &sdfsFileName)
-			err := sdfs_server.PutUtil(localFileName, sdfsFileName)
+			targetReplicas := sdfs_server.GetReplicaTargets(sdfsFileName)
+			err := sdfs_server.PutUtil(localFileName, sdfsFileName, targetReplicas)
 			if err != nil {
 				fmt.Println("Failed to perform put call : ", err)
 			} else {
