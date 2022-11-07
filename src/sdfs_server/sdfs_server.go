@@ -559,6 +559,7 @@ func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error 
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			putOutput := &PutOutput{}
+			putOutput.Success = true
 			target = strings.Split(target, ":")[0]
 			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
