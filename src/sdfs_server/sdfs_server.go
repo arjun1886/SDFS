@@ -6,6 +6,7 @@ import (
 	"bufio"
 	context "context"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"io"
 	"io/ioutil"
@@ -559,7 +560,6 @@ func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error 
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			putOutput := &PutOutput{}
-			putOutput.Success = true
 			target = strings.Split(target, ":")[0]
 			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
@@ -594,6 +594,8 @@ func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error 
 				}
 
 				putOutput, err = putClient.CloseAndRecv()
+				fmt.Println(putOutput)
+				fmt.Println(err)
 				if err != nil {
 					putOutput.Success = false
 				}
