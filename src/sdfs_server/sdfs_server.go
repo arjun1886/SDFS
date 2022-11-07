@@ -25,8 +25,8 @@ type SdfsServer struct {
 }
 
 type NodeToFiles struct {
-	processId   string
-	fileVersion string
+	ProcessId   string
+	FileVersion []string
 }
 
 func Store() []string {
@@ -326,7 +326,7 @@ func Contains(list []string, element string) bool {
 	return result
 }
 
-func getReadTargetsInLatestOrder(file string) []NodeToFiles {
+func getReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
@@ -337,32 +337,47 @@ func getReadTargetsInLatestOrder(file string) []NodeToFiles {
 	for i := 0; i < len(*members); i++ {
 		flag := 0
 		fileNames := (*members)[i].FileNames
-		minTimeStamp := 0
-		highestFileVersion := ""
+		// minTimeStamp := 0
+		fileVersions := []string{}
+		// highestFileVersion := ""
 		for j := 0; j < len(fileNames); j++ {
 			if strings.Split(fileNames[j], "_")[0] == file {
 				flag = 1
-				timeStamp, _ := strconv.Atoi(strings.Split(fileNames[j], "_")[1])
+				fileVersions = append(fileVersions, fileNames[j])
+				/*timeStamp, _ := strconv.Atoi(strings.Split(fileNames[j], "_")[1])
 				if timeStamp > minTimeStamp {
 					minTimeStamp = timeStamp
 					highestFileVersion = fileNames[j]
-				}
+				}*/
 				//hostNames = append(hostNames, (*members)[i].ProcessId)
 				//break
 			}
 		}
 		if flag == 1 {
+
+			sort.Slice(fileVersions[:], func(i, j int) bool {
+				timestampI, _ := strconv.Atoi(strings.Split(fileVersions[i], "_")[1])
+				timestampJ, _ := strconv.Atoi(strings.Split(fileVersions[j], "_")[1])
+				return timestampI > timestampJ
+			})
+
 			nodeToFile := new(NodeToFiles)
-			nodeToFile.processId = (*members)[i].ProcessId
-			nodeToFile.fileVersion = highestFileVersion
+			nodeToFile.ProcessId = (*members)[i].ProcessId
+			nodeToFile.FileVersion = fileVersions[:num]
 			result = append(result, *nodeToFile)
 		}
 		// highestFileVersionPerNode = append(highestFileVersionPerNode, highestFileVersion)
 	}
 	sort.Slice(result[:], func(i, j int) bool {
-		timestampI, _ := strconv.Atoi(strings.Split(result[i].fileVersion, "_")[1])
-		timestampJ, _ := strconv.Atoi(strings.Split(result[j].fileVersion, "_")[1])
+		timestampI, _ := strconv.Atoi(strings.Split(result[i].FileVersion[0], "_")[1])
+		timestampJ, _ := strconv.Atoi(strings.Split(result[j].FileVersion[0], "_")[1])
 		return timestampI > timestampJ
 	})
 	return result
 }
+
+/*
+func clearFile(file string) error {
+
+}
+*/
