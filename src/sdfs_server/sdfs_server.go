@@ -24,6 +24,11 @@ type SdfsServer struct {
 	UnimplementedSdfsServerServer
 }
 
+type NodeToFiles struct {
+	processId   string
+	fileVersion string
+}
+
 func Store() []string {
 	files, err := ioutil.ReadDir("../../sdfs_dir")
 	if err != nil {
@@ -318,5 +323,46 @@ func Contains(list []string, element string) bool {
 			break
 		}
 	}
+	return result
+}
+
+func getReadTargetsInLatestOrder(file string) []NodeToFiles {
+
+	membershipStruct := membership.Membership{}
+	members := membershipStruct.GetMembers()
+	// hostNames := []string{}
+	// highestFileVersionPerNode := []string{}
+	var result []NodeToFiles
+
+	for i := 0; i < len(*members); i++ {
+		flag := 0
+		fileNames := (*members)[i].FileNames
+		minTimeStamp := 0
+		highestFileVersion := ""
+		for j := 0; j < len(fileNames); j++ {
+			if strings.Split(fileNames[j], "_")[0] == file {
+				flag = 1
+				timeStamp, _ := strconv.Atoi(strings.Split(fileNames[j], "_")[1])
+				if timeStamp > minTimeStamp {
+					minTimeStamp = timeStamp
+					highestFileVersion = fileNames[j]
+				}
+				//hostNames = append(hostNames, (*members)[i].ProcessId)
+				//break
+			}
+		}
+		if flag == 1 {
+			nodeToFile := new(NodeToFiles)
+			nodeToFile.processId = (*members)[i].ProcessId
+			nodeToFile.fileVersion = highestFileVersion
+			result = append(result, *nodeToFile)
+		}
+		// highestFileVersionPerNode = append(highestFileVersionPerNode, highestFileVersion)
+	}
+	sort.Slice(result[:], func(i, j int) bool {
+		timestampI, _ := strconv.Atoi(strings.Split(result[i].fileVersion, "_")[1])
+		timestampJ, _ := strconv.Atoi(strings.Split(result[j].fileVersion, "_")[1])
+		return timestampI > timestampJ
+	})
 	return result
 }
