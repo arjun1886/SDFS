@@ -20,9 +20,6 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
-var FileNames = &[]string{}
-var FileToServerMapping = map[string][]string{}
-
 type SdfsServer struct {
 	UnimplementedSdfsServerServer
 }
@@ -62,7 +59,7 @@ func UpdateFileNames() error {
 		fileNames = append(fileNames, file.Name())
 	}
 
-	FileNames = &fileNames
+	membership.FileNames = &fileNames
 	membership.UpdateFileNames()
 	return nil
 }
@@ -179,6 +176,7 @@ func DeleteAllFiles() error {
 			return err
 		}
 	}
+	return nil
 }
 
 func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, readAck int) error {
@@ -331,7 +329,7 @@ func Replication() error {
 			newFileToServerMapping[fileName] = targets
 		}
 	}
-	FileToServerMapping = newFileToServerMapping
+	membership.FileToServerMapping = newFileToServerMapping
 	return nil
 }
 
@@ -480,7 +478,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 }
 
 func DeleteUtil(sdfsFileName string) error {
-	if val, ok := FileToServerMapping[sdfsFileName]; ok {
+	if val, ok := membership.FileToServerMapping[sdfsFileName]; ok {
 		targetReplicas := val
 		// Channel used to store a max of 5 delete outputs
 		deleteOutputChan := make(chan DeleteOutput, 5)
@@ -533,6 +531,7 @@ func DeleteUtil(sdfsFileName string) error {
 			return errors.New("delete Failed")
 		}
 	}
+	return nil
 }
 
 func PutUtil(localFileName, sdfsFileName string) error {

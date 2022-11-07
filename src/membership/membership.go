@@ -2,7 +2,6 @@ package membership
 
 import (
 	"CS425/cs-425-mp1/src/conf"
-	"CS425/cs-425-mp1/src/sdfs/operations"
 	"log"
 	"os"
 	"strings"
@@ -13,6 +12,8 @@ import (
 var Members = &[]conf.Member{}
 var IncarnationNumber int = 1
 var Self, _ = os.Hostname()
+var FileNames = &[]string{}
+var FileToServerMapping = map[string][]string{}
 
 // Membership :Using mutex lock for membership tables
 type Membership struct {
@@ -29,7 +30,7 @@ func UpdateFileNames() {
 	for i := 0; i < len(members); i++ {
 		endpoint := strings.Split((members)[i].ProcessId, ":")[0]
 		if endpoint == Self {
-			(members)[i].FileNames = *operations.FileNames
+			(members)[i].FileNames = *FileNames
 		}
 	}
 	return
