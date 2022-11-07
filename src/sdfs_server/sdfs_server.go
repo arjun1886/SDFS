@@ -82,7 +82,7 @@ func Put(fileObject conf.FileData) error {
 
 	file := fileObject.FileName
 	fileName := strings.Split(file, ".")[0]
-	fileName = fileName + "_ver_" + strconv.FormatInt(time.Now().Unix(), 10)
+	fileName = fileName + "_" + strconv.FormatInt(time.Now().Unix(), 10)
 
 	f, err := os.OpenFile("../../sdfs_dir/"+fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -150,7 +150,7 @@ func Delete(fileName string) error {
 	}
 
 	for _, file := range files {
-		if strings.Contains(file.Name(), fileNameModified+"_ver_") {
+		if strings.Contains(file.Name(), fileNameModified+"_") {
 			err := os.Remove(file.Name())
 			if err != nil {
 				return err
