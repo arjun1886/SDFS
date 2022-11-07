@@ -14,7 +14,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	sync "sync"
 	"time"
+
+	grpc "google.golang.org/grpc"
 )
 
 var FileNames = &[]string{}
@@ -172,6 +175,53 @@ func DeleteAllFiles() error {
 		if err != nil {
 			return err
 		}
+	}
+}
+
+func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, readAck int) error {
+	nodeToFilesArray, err := GetNumVersionsFileNames(fileName, numVersions)
+	if err != nil {
+		return err
+	}
+
+	flag := true
+	for i := 0; i < readAck; i++ {
+		flag = true
+		for j := 0; j < len(nodeToFilesArray[i].FileNames); j++ {
+			err := GetUtil(nodeToFilesArray[i].ProcessId, localFileName, nodeToFilesArray[i].FileNames[j])
+			if err != nil {
+				flag = false
+				break
+			}
+
+			f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+			if err != nil {
+				flag = false
+				break
+			}
+
+			defer f.Close()
+
+			_, err = f.Write([]byte("_______________________________"))
+			if err != nil {
+				flag = false
+				break
+			}
+		}
+		if flag == true {
+			return nil
+		} else {
+			err := ClearFile(localFileName)
+			if err != nil {
+				return errors.New("Failed to get num versions")
+			}
+		}
+	}
+
+	if flag == true {
+		return nil
+	} else {
+		return errors.New("Failed to get num versions")
 	}
 }
 
@@ -381,3 +431,183 @@ func clearFile(file string) error {
 
 }
 */
+func GetUtil(target string, localFileName string, sdfsFileName string) error {
+	ctx := context.Background()
+	var conn *grpc.ClientConn
+	getOutput := &GetOutput{}
+	conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+	if err != nil {
+		return errors.New("Failed to connect to SDFS to get file")
+	} else {
+		defer conn.Close()
+		s := NewSdfsServerClient(conn)
+		getInput := GetInput{}
+		getInput.FileName = sdfsFileName
+		stream, err := s.Get(ctx, &getInput)
+		if err != nil {
+			errors.New("Failed to make Get call to SDFS to get file")
+		}
+
+		for {
+			getOutput, err = stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				errors.New("Failed to get file from stream")
+			}
+
+			f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+			if err != nil {
+				errors.New("Failed to open local file to write from stream")
+			}
+
+			defer f.Close()
+
+			n, err := f.Write(getOutput.GetChunk())
+			if err != nil {
+				errors.New("Failed to write to local file from stream")
+			}
+
+			if n != len(getOutput.GetChunk()) {
+				errors.New("Could not complete full write into file")
+			}
+		}
+
+		errors.New("Successfully completed Get call to Sdfs")
+	}
+}
+
+func DeleteUtil(sdfsFileName string) error {
+	if val, ok := FileToServerMapping[sdfsFileName]; ok {
+		targetReplicas := val
+		// Channel used to store a max of 5 delete outputs
+		deleteOutputChan := make(chan DeleteOutput, 5)
+		deleteOutputList := []DeleteOutput{}
+		ctx := context.Background()
+		var wg sync.WaitGroup
+		// Tell the 'wg' WaitGroup how many threads/goroutines
+		//	that are about to run concurrently.
+		wg.Add(len(targetReplicas))
+		for i := 0; i < len(targetReplicas); i++ {
+			// Spawn a thread for each iteration in the loop.
+			go func(ctx context.Context, target string, fileName string, deleteOutputChan chan DeleteOutput) {
+				// At the end of the goroutine, tell the WaitGroup
+				//   that another thread has completed.
+				defer wg.Done()
+				var conn *grpc.ClientConn
+				deleteOutput := &DeleteOutput{}
+				conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+				if err != nil {
+					deleteOutput.Success = false
+				} else {
+					defer conn.Close()
+					s := NewSdfsServerClient(conn)
+					deleteInput := DeleteInput{FileName: sdfsFileName}
+					deleteOutput, err = s.Delete(ctx, &deleteInput)
+
+					if err != nil {
+						deleteOutput.Success = false
+					}
+				}
+				deleteOutputChan <- *deleteOutput
+			}(ctx, targetReplicas[i], sdfsFileName, deleteOutputChan)
+			deleteOutputList = append(deleteOutputList, <-deleteOutputChan)
+		}
+		// Wait for `wg.Done()` to be executed the number of times
+		//   specified in the `wg.Add()` call.
+		// `wg.Done()` should be called the exact number of times
+		//   that was specified in `wg.Add()`.
+		wg.Wait()
+		close(deleteOutputChan)
+		successCount := 0
+		for i := 0; i < len(deleteOutputList); i++ {
+			if deleteOutputList[i].Success == true {
+				successCount += 1
+			}
+		}
+		if successCount == len(targetReplicas) {
+			return nil
+		} else {
+			return errors.New("Delete Failed")
+		}
+	}
+}
+
+func PutUtil(localFileName, sdfsFileName string) error {
+	targetReplicas := GetTargetReplicas()
+	// Channel used to store a max of 5 put outputs
+	nodeOutputChan := make(chan PutOutput, 5)
+	nodeOutputList := []PutOutput{}
+	ctx := context.Background()
+	var wg sync.WaitGroup
+	// Tell the 'wg' WaitGroup how many threads/goroutines
+	//	that are about to run concurrently.
+	wg.Add(len(targetReplicas))
+	for i := 0; i < len(targetReplicas); i++ {
+		// Spawn a thread for each iteration in the loop.
+		go func(ctx context.Context, localFileName string, target string, nodeOutputChan chan PutOutput) {
+			// At the end of the goroutine, tell the WaitGroup
+			//   that another thread has completed.
+			defer wg.Done()
+			var conn *grpc.ClientConn
+			putOutput := &PutOutput{}
+			conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+			if err != nil {
+				putOutput.Success = false
+			} else {
+				defer conn.Close()
+				s := NewSdfsServerClient(conn)
+				putClient, err := s.Put(ctx)
+
+				fil, err := os.Open(localFileName)
+				if err != nil {
+					putOutput.Success = false
+				}
+
+				// Maximum 1KB size per stream.
+				buf := make([]byte, 1024)
+
+				for {
+					num, err := fil.Read(buf)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						putOutput.Success = false
+					}
+					putInput := PutInput{}
+					putInput.FileName = sdfsFileName
+					putInput.Chunk = buf[:num]
+					if err := putClient.Send(&putInput); err != nil {
+						putOutput.Success = false
+					}
+				}
+
+				putOutput, err = putClient.CloseAndRecv()
+				if err != nil {
+					putOutput.Success = false
+				}
+			}
+			nodeOutputChan <- *putOutput
+		}(ctx, localFileName, targetReplicas[i], nodeOutputChan)
+		nodeOutputList = append(nodeOutputList, <-nodeOutputChan)
+	}
+	// Wait for `wg.Done()` to be executed the number of times
+	//   specified in the `wg.Add()` call.
+	// `wg.Done()` should be called the exact number of times
+	//   that was specified in `wg.Add()`.
+	wg.Wait()
+	close(nodeOutputChan)
+	successCount := 0
+	for i := 0; i < len(nodeOutputList); i++ {
+		if nodeOutputList[i].Success == true {
+			successCount += 1
+		}
+	}
+	if successCount >= 4 {
+		return nil
+	} else {
+		return errors.New("Write failed to be acked by W nodes")
+	}
+}
