@@ -99,7 +99,7 @@ func Put(fileObject conf.FileData) error {
 	}
 
 	if n != len(fileObject.Data) {
-		return errors.New("Could not complete full write into file")
+		return errors.New("could not complete full write into file")
 	}
 
 	err = UpdateFileNames()
@@ -346,9 +346,17 @@ func GetReplicaTargets(file string) []string {
 
 	requiredReplicas := 5 - numReplicas
 	mainReplicaIndex := hash(fileName) % uint32(len(*members))
+
+	for i := 0; i < len(*members); i++ {
+		if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) && (*members)[i].State == "ACTIVE" {
+			break
+		} else {
+			mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
+		}
+	}
 	// should we check for active main replica here?
 
-	j := (int(mainReplicaIndex)) % len(*members)
+	j := (int(mainReplicaIndex) + 1) % len(*members)
 	for requiredReplicas > 0 {
 		if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
 			// sdfsServerStruct.put(fileName, (*members)[j])
@@ -383,7 +391,7 @@ func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 		flag := 0
 		fileNames := (*members)[i].FileNames
 		// minTimeStamp := 0
-		fileVersions := []string{}
+		var fileVersions []string
 		// highestFileVersion := ""
 		for j := 0; j < len(fileNames); j++ {
 			if strings.Split(fileNames[j], "_")[0] == file {
@@ -421,18 +429,20 @@ func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 	return result
 }
 
-/*
-func clearFile(file string) error {
-
+func ClearFile(file string) error {
+	if err := os.Truncate(file, 0); err != nil {
+		return errors.New("failed to truncate: %v")
+	}
+	return nil
 }
-*/
+
 func GetUtil(target string, localFileName string, sdfsFileName string) error {
 	ctx := context.Background()
 	var conn *grpc.ClientConn
 	getOutput := &GetOutput{}
 	conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 	if err != nil {
-		return errors.New("Failed to connect to SDFS to get file")
+		return errors.New("failed to connect to SDFS to get file")
 	} else {
 		defer conn.Close()
 		s := NewSdfsServerClient(conn)
@@ -440,7 +450,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 		getInput.FileName = sdfsFileName
 		stream, err := s.Get(ctx, &getInput)
 		if err != nil {
-			errors.New("Failed to make Get call to SDFS to get file")
+			errors.New("failed to make Get call to SDFS to get file")
 		}
 
 		for {
@@ -449,23 +459,23 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 				break
 			}
 			if err != nil {
-				errors.New("Failed to get file from stream")
+				errors.New("failed to get file from stream")
 			}
 
 			f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 			if err != nil {
-				errors.New("Failed to open local file to write from stream")
+				errors.New("failed to open local file to write from stream")
 			}
 
 			defer f.Close()
 
 			n, err := f.Write(getOutput.GetChunk())
 			if err != nil {
-				errors.New("Failed to write to local file from stream")
+				errors.New("failed to write to local file from stream")
 			}
 
 			if n != len(getOutput.GetChunk()) {
-				errors.New("Could not complete full write into file")
+				errors.New("could not complete full write into file")
 			}
 		}
 
@@ -524,7 +534,7 @@ func DeleteUtil(sdfsFileName string) error {
 		if successCount == len(targetReplicas) {
 			return nil
 		} else {
-			return errors.New("Delete Failed")
+			return errors.New("delete Failed")
 		}
 	}
 }
@@ -603,6 +613,6 @@ func PutUtil(localFileName, sdfsFileName string) error {
 	if successCount >= 4 {
 		return nil
 	} else {
-		return errors.New("Write failed to be acked by W nodes")
+		return errors.New("write failed to be acked by W nodes")
 	}
 }
