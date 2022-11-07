@@ -222,52 +222,63 @@ func Replication() error {
 
 	sdfsServerStruct := SdfsServer{}
 
-	// member list is of form []{processId, fileNames}
-	// create new global map of form map[filename] = []{node1, node2}
-	for n := 0; n < len(*FileNames); n++ {
-		fileName := strings.Split((*FileNames)[n], "_")[0]
-		existingReplicas := Ls(fileName)
-		flag := 0
-		numReplicas := len(existingReplicas)
+	newFileToServerMapping := &map[string][]string{}
 
-		if numReplicas == 5 {
-			continue
-		}
-		requiredReplicas := 5 - numReplicas
-
-		mainReplicaIndex := hash(fileName) % uint32(len(*members))
-
-		// See if primary replica already exists
-		for i := 0; i < len(existingReplicas); i++ {
-			if mainReplicaIndex == uint32(existingReplicas[i][14]) {
-				flag = 1
+	for i := 0; i < len(*members); i++ {
+		fileNames := (*members)[i].FileNames
+		for n := 0; n < len(fileNames); n++ {
+			fileName := strings.Split((fileNames)[n], "_")[0]
+			if _, ok := (*newFileToServerMapping)[fileName]; !ok {
+				continue
 			}
-		}
+			existingReplicas := Ls(fileName)
+			flag := 0
+			numReplicas := len(existingReplicas)
 
-		// If it doesn't exist, find and put in primary replica
-		if flag == 0 {
-			for i := 0; i < len(*members); i++ {
-				if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
-					sdfsServerStruct.put(fileName, members[i])
+			if numReplicas == 5 {
+				continue
+			}
+			requiredReplicas := 5 - numReplicas
+
+			mainReplicaIndex := hash(fileName) % uint32(len(*members))
+
+			// See if primary replica already exists
+			for i := 0; i < len(existingReplicas); i++ {
+				if mainReplicaIndex == uint32(existingReplicas[i][14]) {
+					flag = 1
 				}
-
 			}
-		}
 
-		// Linearly scan to find and put in next replicas
-		j := (int(mainReplicaIndex) + 1) % len(*members)
-		for requiredReplicas > 0 {
-			if !Contains(existingReplicas, members[j]) {
-				sdfsServerStruct.put(fileName, members[j])
-				requiredReplicas -= 1
-				j = (j + 1) % len(*members)
+			// If it doesn't exist, find and put in primary replica
+			if flag == 0 {
+				for i := 0; i < len(*members); i++ {
+					if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
+						if *members[i].State == "ACTIVE" {
+							sdfsServerStruct.put(fileName, members[i])
+							break
+						} else {
+							mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
+						}
+					}
+				}
 			}
-		}
 
-		// Update global map
-		targets := GetReplicaTargets(file)
-		(*FileToServerMapping)[fileName] = targets
+			// Linearly scan to find and put in next replicas
+			j := (int(mainReplicaIndex) + 1) % len(*members)
+			for requiredReplicas > 0 {
+				if !Contains(existingReplicas, members[j]) && *members[j].State == "ACTIVE" {
+					sdfsServerStruct.put(fileName, members[j])
+					requiredReplicas -= 1
+					j = (j + 1) % len(*members)
+				}
+			}
+
+			// Update global map
+			targets := GetReplicaTargets(fileNames[n])
+			(*newFileToServerMapping)[fileName] = targets
+		}
 	}
+	FileToServerMapping = newFileToServerMapping
 	return nil
 }
 
@@ -285,9 +296,11 @@ func GetReplicaTargets(file string) []string {
 
 	requiredReplicas := 5 - numReplicas
 	mainReplicaIndex := hash(fileName) % uint32(len(*members))
+	// should we check for active main replica here?
+
 	j := (int(mainReplicaIndex)) % len(*members)
 	for requiredReplicas > 0 {
-		if !Contains(existingReplicas, *members[j]) {
+		if !Contains(existingReplicas, *members[j]) && *members[j].State == "ACTIVE" {
 			// sdfsServerStruct.put(fileName, members[j])
 			hostNames = append(hostNames, (*members)[j].ProcessId)
 			requiredReplicas -= 1
