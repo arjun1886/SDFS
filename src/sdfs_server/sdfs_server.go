@@ -433,6 +433,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 	ctx := context.Background()
 	var conn *grpc.ClientConn
 	getOutput := &GetOutput{}
+	target = strings.Split(target, ":")[0]
 	conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 	if err != nil {
 		return errors.New("failed to connect to SDFS to get file")
@@ -495,6 +496,7 @@ func DeleteUtil(sdfsFileName string) error {
 				defer wg.Done()
 				var conn *grpc.ClientConn
 				deleteOutput := &DeleteOutput{}
+				target = strings.Split(target, ":")[0]
 				conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 				if err != nil {
 					deleteOutput.Success = false
@@ -551,6 +553,7 @@ func PutUtil(localFileName, sdfsFileName string) error {
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			putOutput := &PutOutput{}
+			target = strings.Split(target, ":")[0]
 			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
 				putOutput.Success = false
