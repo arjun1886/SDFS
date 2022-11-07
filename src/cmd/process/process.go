@@ -17,8 +17,6 @@ import (
 
 func ping(targets []string) {
 	for i := 0; i < len(targets); i++ {
-		// fmt.Println("Targets:", targets)
-
 		hostName := strings.Split(targets[i], ":")[0]
 		portNum := "8001"
 		service := hostName + ":" + portNum
@@ -146,25 +144,28 @@ func main() {
 			hostName, _ := os.Hostname()
 			membership.PrintSelfId(hostName)
 		} else if arg == "PUT" {
-			localFileName := ""
-			sdfsFileName := ""
+			var sdfsFileName string
+			var command string
+			var localFileName string
+			fmt.Scanf("%s%s%s", &command, &localFileName, &sdfsFileName)
 			err := sdfs_server.PutUtil(localFileName, sdfsFileName)
 			if err != nil {
 				fmt.Println("Failed to perform put call : ", err)
 			} else {
 				fmt.Println("put call successful")
 			}
-		} else if arg == "get" {
-			target := ""
-			localFileName := ""
-			sdfsFileName := ""
+		} else if arg == "GET" {
+			var sdfsFileName string
+			var command string
+			var localFileName string
+			fmt.Scanf("%s%s%s", &command, &sdfsFileName, &localFileName)
 			readAck := 2
 			nodeToFileArray := sdfs_server.GetReadTargetsInLatestOrder(sdfsFileName, 1)
 			flag := true
 			for i := 0; i < readAck; i++ {
 				if flag != true {
 					for j := 0; i < len(nodeToFileArray[i].FileVersion[0]); j++ {
-						err := sdfs_server.GetUtil(target, localFileName, sdfsFileName)
+						err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, sdfsFileName)
 						if err != nil {
 							flag = false
 							sdfs_server.ClearFile(localFileName)
@@ -180,18 +181,22 @@ func main() {
 			} else {
 				fmt.Println("failed to perform get call")
 			}
-		} else if arg == "delete" {
-			sdfsFileName := ""
+		} else if arg == "DELETE" {
+			var sdfsFileName string
+			var command string
+			fmt.Scanf("%s%s", &command, &sdfsFileName)
 			err := sdfs_server.DeleteUtil(sdfsFileName)
 			if err != nil {
 				fmt.Println("Failed to perform delete : ", err)
 			} else {
 				fmt.Println("Delete successful")
 			}
-		} else if arg == "get-versions" {
-			numVersions := 5
-			sdfsFileName := ""
-			localFileName := ""
+		} else if arg == "GET_VERSIONS" {
+			var sdfsFileName string
+			var command string
+			var localFileName string
+			var numVersions int
+			fmt.Scanf("%s%s%d%s", &command, &sdfsFileName, &numVersions, &localFileName)
 			readAck := 2
 			err := sdfs_server.GetNumVersionsUtil(sdfsFileName, numVersions, localFileName, readAck)
 			if err != nil {
@@ -199,10 +204,12 @@ func main() {
 			} else {
 				fmt.Println("Get num versions successful")
 			}
-		} else if arg == "store" {
+		} else if arg == "STORE" {
 			fmt.Println(sdfs_server.Store())
-		} else if arg == "ls" {
-			sdfsFileName := ""
+		} else if arg == "LS" {
+			var sdfsFileName string
+			var command string
+			fmt.Scanf("%s%s", &command, &sdfsFileName)
 			hostNames := sdfs_server.Ls(sdfsFileName)
 			fmt.Println(hostNames)
 		}
