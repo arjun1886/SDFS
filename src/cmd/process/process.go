@@ -165,8 +165,12 @@ func main() {
 			fmt.Scanf("%s%s%s", &command, &sdfsFileName, &localFileName)
 			readAck := 2
 			nodeToFileArray := sdfs_server.GetReadTargetsInLatestOrder(sdfsFileName, 1)
+			if len(nodeToFileArray) == 0 {
+				fmt.Println("Length of nodeToFileArray 0")
+			}
 			flag := true
 			for i := 0; i < readAck; i++ {
+				fmt.Println("First file of nodeToFileArray:", nodeToFileArray[i].FileVersion[0])
 				err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, nodeToFileArray[i].FileVersion[0])
 				if err != nil {
 					flag = false
