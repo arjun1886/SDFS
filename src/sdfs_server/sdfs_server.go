@@ -347,16 +347,9 @@ func GetReplicaTargets(file string) []string {
 	requiredReplicas := 5 - numReplicas
 	mainReplicaIndex := hash(fileName) % uint32(len(*members))
 
-	for i := 0; i < len(*members); i++ {
-		if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) && (*members)[i].State == "ACTIVE" {
-			break
-		} else {
-			mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
-		}
-	}
 	// should we check for active main replica here?
 
-	j := (int(mainReplicaIndex) + 1) % len(*members)
+	j := (int(mainReplicaIndex)) % len(*members)
 	for requiredReplicas > 0 {
 		if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
 			// sdfsServerStruct.put(fileName, (*members)[j])
