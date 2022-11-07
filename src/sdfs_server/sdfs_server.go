@@ -38,7 +38,6 @@ func Store() []string {
 	fileNames := []string{}
 	for _, file := range files {
 		fileName := strings.Split(file.Name(), "_")[0]
-		log.Println(fileName)
 		if !Contains(fileNames, fileName) {
 
 			fileNames = append(fileNames, fileName)
@@ -176,6 +175,7 @@ func DeleteAllFiles() error {
 			return err
 		}
 	}
+	membership.UpdateFileNames()
 	return nil
 }
 
@@ -223,7 +223,7 @@ func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, 
 	}
 }
 
-func GetNumVersionsFileNames(fileName string, numVersions int) ([]string, error) {
+/*func GetNumVersionsFileNames(fileName string, numVersions int) ([]string, error) {
 	fileNameModified := strings.Split(fileName, ".")[0]
 	files, err := ioutil.ReadDir("../../sdfs_dir")
 	if err != nil {
@@ -245,7 +245,7 @@ func GetNumVersionsFileNames(fileName string, numVersions int) ([]string, error)
 		finalFileNames = append(finalFileNames, fileNames[i])
 	}
 	return finalFileNames, nil
-}
+}*/
 
 func Ls(fileName string) []string {
 	membershipStruct := membership.Membership{}
@@ -434,7 +434,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 	ctx := context.Background()
 	var conn *grpc.ClientConn
 	getOutput := &GetOutput{}
-	conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+	conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 	if err != nil {
 		return errors.New("failed to connect to SDFS to get file")
 	} else {
@@ -444,7 +444,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 		getInput.FileName = sdfsFileName
 		stream, err := s.Get(ctx, &getInput)
 		if err != nil {
-			errors.New("failed to make Get call to SDFS to get file")
+			return errors.New("failed to make Get call to SDFS to get file")
 		}
 
 		for {
@@ -453,23 +453,23 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 				break
 			}
 			if err != nil {
-				errors.New("failed to get file from stream")
+				return errors.New("failed to get file from stream")
 			}
 
 			f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 			if err != nil {
-				errors.New("failed to open local file to write from stream")
+				return errors.New("failed to open local file to write from stream")
 			}
 
 			defer f.Close()
 
 			n, err := f.Write(getOutput.GetChunk())
 			if err != nil {
-				errors.New("failed to write to local file from stream")
+				return errors.New("failed to write to local file from stream")
 			}
 
 			if n != len(getOutput.GetChunk()) {
-				errors.New("could not complete full write into file")
+				return errors.New("could not complete full write into file")
 			}
 		}
 
@@ -496,7 +496,7 @@ func DeleteUtil(sdfsFileName string) error {
 				defer wg.Done()
 				var conn *grpc.ClientConn
 				deleteOutput := &DeleteOutput{}
-				conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+				conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 				if err != nil {
 					deleteOutput.Success = false
 				} else {
@@ -552,7 +552,7 @@ func PutUtil(localFileName, sdfsFileName string) error {
 			defer wg.Done()
 			var conn *grpc.ClientConn
 			putOutput := &PutOutput{}
-			conn, err := grpc.Dial(target, grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
 				putOutput.Success = false
 			} else {
