@@ -308,7 +308,8 @@ func Replication() error {
 							if (*members)[i].State == "ACTIVE" {
 								nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
 								_ = GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
-								PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})								break
+								PutUtil("dummy.txt", fileName, []string{(*members)[i].ProcessId})
+								break
 							} else {
 								mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
 							}
