@@ -163,17 +163,13 @@ func main() {
 			nodeToFileArray := sdfs_server.GetReadTargetsInLatestOrder(sdfsFileName, 1)
 			flag := true
 			for i := 0; i < readAck; i++ {
-				if flag != true {
-					for j := 0; i < len(nodeToFileArray[i].FileVersion[0]); j++ {
-						err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, sdfsFileName)
-						if err != nil {
-							flag = false
-							sdfs_server.ClearFile(localFileName)
-						} else {
-							flag = true
-							break
-						}
-					}
+				err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, nodeToFileArray[i].FileVersion[0])
+				if err != nil {
+					flag = false
+					sdfs_server.ClearFile(localFileName)
+				} else {
+					flag = true
+					break
 				}
 			}
 			if flag == true {
