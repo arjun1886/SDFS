@@ -40,8 +40,10 @@ func Store() []string {
 
 	fileNames := []string{}
 	for _, file := range files {
-		fileName := strings.Split(file.Name(), ".")[0]
+		fileName := strings.Split(file.Name(), "_")[0]
+		log.Println(fileName)
 		if !Contains(fileNames, fileName) {
+
 			fileNames = append(fileNames, fileName)
 		}
 	}
