@@ -18,7 +18,7 @@ import (
 )
 
 var FileNames = &[]string{}
-var FileToServerMapping = &map[string][]string{}
+var FileToServerMapping = map[string][]string{}
 
 type SdfsServer struct {
 	UnimplementedSdfsServerServer
@@ -151,6 +151,9 @@ func Delete(fileName string) error {
 			}
 		}
 	}
+
+	membership.UpdateFileNames()
+	return nil
 }
 
 func DeleteAllFiles() error {
@@ -219,6 +222,8 @@ func Replication() error {
 
 	sdfsServerStruct := SdfsServer{}
 
+	// member list is of form []{processId, fileNames}
+	// create new global map of form map[filename] = []{node1, node2}
 	for n := 0; n < len(*FileNames); n++ {
 		fileName := strings.Split((*FileNames)[n], "_")[0]
 		existingReplicas := Ls(fileName)

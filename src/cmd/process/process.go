@@ -329,7 +329,10 @@ func main() {
 				}
 			}
 		} else if arg == "get-versions" {
-
+			numVersions := 5
+			sdfsFileName := ""
+			localFileName := ""
+			sdfs_server.GetNumVersionsFileNames(sdfsFileName, numVersions)
 		} else if arg == "store" {
 			fmt.Println(sdfs_server.Store())
 		} else if arg == "ls" {
