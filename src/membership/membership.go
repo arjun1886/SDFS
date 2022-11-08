@@ -66,6 +66,7 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 				} else if (*Members)[i].IncarnationNumber < (*responseMembershipList)[j].IncarnationNumber {
 					(*Members)[i].State = (*responseMembershipList)[j].State
 					(*Members)[i].IncarnationNumber = (*responseMembershipList)[j].IncarnationNumber
+					(*Members)[i].FileNames = (*responseMembershipList)[j].FileNames
 					// finalMembers = append(finalMembers, (*Members)[i])
 					flag = 1
 					break
@@ -127,6 +128,7 @@ func (c *Membership) UpdateMembers(responseMembershipList *[]conf.Member) {
 					member.ProcessId = (*responseMembershipList)[j].ProcessId
 					member.State = (*responseMembershipList)[j].State
 					member.IncarnationNumber = (*responseMembershipList)[j].IncarnationNumber
+					member.FileNames = (*responseMembershipList)[j].FileNames
 					*Members = append(*Members, member)
 				}
 			}
