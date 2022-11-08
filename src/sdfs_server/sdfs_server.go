@@ -159,7 +159,7 @@ func Delete(fileName string) error {
 		}
 	}
 
-	membership.UpdateFileNames()
+	UpdateFileNames()
 	return nil
 }
 
@@ -175,7 +175,7 @@ func DeleteAllFiles() error {
 			return err
 		}
 	}
-	membership.UpdateFileNames()
+	UpdateFileNames()
 	return nil
 }
 
