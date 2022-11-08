@@ -173,23 +173,26 @@ func main() {
 			nodeToFileArray := sdfs_server.GetReadTargetsInLatestOrder(sdfsFileName, 1)
 			if len(nodeToFileArray) == 0 {
 				fmt.Println("Length of nodeToFileArray 0")
-			}
-			flag := true
-			for i := 0; i < readAck; i++ {
-				fmt.Println("First file of nodeToFileArray:", nodeToFileArray[i].FileVersion[0])
-				err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, nodeToFileArray[i].FileVersion[0])
-				if err != nil {
-					flag = false
-					sdfs_server.ClearFile(localFileName)
-				} else {
-					flag = true
-					break
-				}
-			}
-			if flag == true {
-				fmt.Println("get call successful")
+
 			} else {
-				fmt.Println("failed to perform get call")
+				flag := true
+				for i := 0; i < readAck; i++ {
+					fmt.Println("First file of nodeToFileArray:", nodeToFileArray[i].FileVersion[0])
+					err := sdfs_server.GetUtil(nodeToFileArray[i].ProcessId, localFileName, nodeToFileArray[i].FileVersion[0])
+					fmt.Println("Error:", err)
+					if err != nil {
+						flag = false
+						sdfs_server.ClearFile(localFileName)
+					} else {
+						flag = true
+						break
+					}
+				}
+				if flag == true {
+					fmt.Println("get call successful")
+				} else {
+					fmt.Println("failed to perform get call")
+				}
 			}
 		} else if arg == "DELETE" {
 			var sdfsFileName string

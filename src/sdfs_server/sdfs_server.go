@@ -280,20 +280,25 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-func Replication() error {
+func Replication() {
 	for {
 		time.Sleep(1 * time.Second)
 		membershipStruct := membership.Membership{}
 		members := membershipStruct.GetMembers()
-
+		fmt.Println("Before", membership.FileToServerMapping)
 		newFileToServerMapping := map[string][]string{}
 
 		for i := 0; i < len(*members); i++ {
 			fileNames := (*members)[i].FileNames
+			for j := 0; j < len(fileNames); j++ {
+				print("FileNames for member i :", i, ":", fileNames[j])
+			}
+
 			for n := 0; n < len(fileNames); n++ {
 				fileName := strings.Split((fileNames)[n], "_")[0]
 				if _, ok := newFileToServerMapping[fileName]; !ok {
 					continue
+					fmt.Println("Continuing")
 				}
 				existingReplicas := Ls(fileName)
 				flag := 0
@@ -346,8 +351,9 @@ func Replication() error {
 				newFileToServerMapping[fileName] = targets
 			}
 		}
+		fmt.Println("Hello", newFileToServerMapping)
 		membership.FileToServerMapping = newFileToServerMapping
-		return nil
+		fmt.Println("After", membership.FileToServerMapping)
 	}
 }
 
@@ -392,7 +398,7 @@ func Contains(list []string, element string) bool {
 }
 
 func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
-
+	fmt.Println("Inside get read targets")
 	membershipStruct := membership.Membership{}
 	members := membershipStruct.GetMembers()
 	// hostNames := []string{}
@@ -402,6 +408,9 @@ func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 	for i := 0; i < len(*members); i++ {
 		flag := 0
 		fileNames := (*members)[i].FileNames
+		for j := 0; j < len(fileNames); j++ {
+			print("FileNames for member i :", i, ":", fileNames[j])
+		}
 		// minTimeStamp := 0
 		var fileVersions []string
 		// highestFileVersion := ""
