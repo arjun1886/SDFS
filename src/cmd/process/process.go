@@ -293,7 +293,7 @@ func SdfsServer() {
 
 	grpcServer := grpc.NewServer()
 
-	sdfs_server.RegisterSdfsServerServer(grpcServer, sdfs_server.UnimplementedSdfsServerServer{})
+	sdfs_server.RegisterSdfsServerServer(grpcServer, &sdfs_server.SdfsServer{})
 
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %s", err)

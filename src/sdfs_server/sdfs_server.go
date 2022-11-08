@@ -63,7 +63,7 @@ func UpdateFileNames() error {
 	return nil
 }
 
-func (s *SdfsServer) Put(ctx context.Context, stream SdfsServer_PutServer) error {
+func (s *SdfsServer) Put(stream SdfsServer_PutServer) error {
 	req, err := stream.Recv()
 	if err == io.EOF {
 		fileObject := conf.FileData{}
@@ -105,9 +105,9 @@ func Put(fileObject conf.FileData) error {
 	return err
 }
 
-func (s *SdfsServer) Get(fileName string, srv SdfsServer_GetServer) error {
+func (s *SdfsServer) Get(getInput *GetInput, srv SdfsServer_GetServer) error {
 
-	f, err := os.Open("../../sdfs_dir/" + fileName)
+	f, err := os.Open("../../sdfs_dir/" + getInput.FileName)
 
 	if err != nil {
 		log.Fatal(err)
