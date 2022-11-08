@@ -193,6 +193,8 @@ func DeleteAllFiles() error {
 func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, readAck int) error {
 	nodeToFilesArray := GetReadTargetsInLatestOrder(fileName, numVersions)
 
+	_ = ClearFile(localFileName)
+
 	flag := true
 	for i := 0; i < readAck; i++ {
 		flag = true
@@ -211,7 +213,7 @@ func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, 
 
 			defer f.Close()
 
-			_, err = f.Write([]byte("_______________________________"))
+			_, err = f.Write([]byte("_______________________________\n"))
 			if err != nil {
 				flag = false
 				break
@@ -222,7 +224,7 @@ func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, 
 		} else {
 			err := ClearFile(localFileName)
 			if err != nil {
-				return errors.New("Failed to get num versions")
+				return errors.New("failed to get num versions")
 			}
 		}
 	}
@@ -230,7 +232,7 @@ func GetNumVersionsUtil(fileName string, numVersions int, localFileName string, 
 	if flag == true {
 		return nil
 	} else {
-		return errors.New("Failed to get num versions")
+		return errors.New("failed to get num versions")
 	}
 }
 
@@ -306,8 +308,10 @@ func Replication() {
 		}
 
 		membership.FileToServerMapping = newFileToServerMapping
-
-		for fileName, value := range newFileToServerMapping {
+		fmt.Println("After", membership.FileToServerMapping)
+		fmt.Println("Hi", membership.FileToServerMapping)
+		for fileName, value := range membership.FileToServerMapping {
+			fmt.Println("Entering loop")
 			existingReplicas := value
 			fmt.Println("Length of existing replicas:", len(existingReplicas))
 			flag := 0
@@ -401,6 +405,7 @@ func GetReplicaTargets(file string) []string {
 	// sdfsServerStruct := sdfsServer{}
 	fileName := strings.Split(file, "_")[0]
 	existingReplicas := membership.FileToServerMapping[fileName]
+	fmt.Println("Inside get replica targets, map:", membership.FileToServerMapping[fileName])
 	hostNames := existingReplicas
 	numReplicas := len(hostNames)
 	if numReplicas == 5 {
@@ -414,6 +419,7 @@ func GetReplicaTargets(file string) []string {
 
 	j := (int(mainReplicaIndex)) % len(*members)
 	for requiredReplicas > 0 {
+		fmt.Println("Entering loop")
 		if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
 			// sdfsServerStruct.put(fileName, (*members)[j])
 			hostNames = append(hostNames, (*members)[j].ProcessId)
@@ -421,6 +427,7 @@ func GetReplicaTargets(file string) []string {
 			j = (j + 1) % len(*members)
 		}
 	}
+	fmt.Println("Returning replica targets ", hostNames)
 	return hostNames
 }
 
