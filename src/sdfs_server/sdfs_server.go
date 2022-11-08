@@ -400,7 +400,7 @@ func GetReplicaTargets(file string) []string {
 	members := membershipStruct.GetMembers()
 	// sdfsServerStruct := sdfsServer{}
 	fileName := strings.Split(file, "_")[0]
-	existingReplicas := Ls(fileName)
+	existingReplicas := membership.FileToServerMapping[fileName]
 	hostNames := existingReplicas
 	numReplicas := len(hostNames)
 	if numReplicas == 5 {
