@@ -25,9 +25,6 @@ type SdfsServerClient interface {
 	Put(ctx context.Context, opts ...grpc.CallOption) (SdfsServer_PutClient, error)
 	Delete(ctx context.Context, in *DeleteInput, opts ...grpc.CallOption) (*DeleteOutput, error)
 	Get(ctx context.Context, in *GetInput, opts ...grpc.CallOption) (SdfsServer_GetClient, error)
-	Ls(ctx context.Context, in *LsInput, opts ...grpc.CallOption) (*LsOutput, error)
-	Store(ctx context.Context, in *StoreInput, opts ...grpc.CallOption) (*StoreOutput, error)
-	GetNumVersions(ctx context.Context, in *GetNumVersionsInput, opts ...grpc.CallOption) (SdfsServer_GetNumVersionsClient, error)
 }
 
 type sdfsServerClient struct {
@@ -113,56 +110,6 @@ func (x *sdfsServerGetClient) Recv() (*GetOutput, error) {
 	return m, nil
 }
 
-func (c *sdfsServerClient) Ls(ctx context.Context, in *LsInput, opts ...grpc.CallOption) (*LsOutput, error) {
-	out := new(LsOutput)
-	err := c.cc.Invoke(ctx, "/sdfs_server.SdfsServer/Ls", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *sdfsServerClient) Store(ctx context.Context, in *StoreInput, opts ...grpc.CallOption) (*StoreOutput, error) {
-	out := new(StoreOutput)
-	err := c.cc.Invoke(ctx, "/sdfs_server.SdfsServer/Store", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *sdfsServerClient) GetNumVersions(ctx context.Context, in *GetNumVersionsInput, opts ...grpc.CallOption) (SdfsServer_GetNumVersionsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &SdfsServer_ServiceDesc.Streams[2], "/sdfs_server.SdfsServer/GetNumVersions", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &sdfsServerGetNumVersionsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type SdfsServer_GetNumVersionsClient interface {
-	Recv() (*GetNumVersionsOutput, error)
-	grpc.ClientStream
-}
-
-type sdfsServerGetNumVersionsClient struct {
-	grpc.ClientStream
-}
-
-func (x *sdfsServerGetNumVersionsClient) Recv() (*GetNumVersionsOutput, error) {
-	m := new(GetNumVersionsOutput)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // SdfsServerServer is the server API for SdfsServer service.
 // All implementations must embed UnimplementedSdfsServerServer
 // for forward compatibility
@@ -170,9 +117,6 @@ type SdfsServerServer interface {
 	Put(SdfsServer_PutServer) error
 	Delete(context.Context, *DeleteInput) (*DeleteOutput, error)
 	Get(*GetInput, SdfsServer_GetServer) error
-	Ls(context.Context, *LsInput) (*LsOutput, error)
-	Store(context.Context, *StoreInput) (*StoreOutput, error)
-	GetNumVersions(*GetNumVersionsInput, SdfsServer_GetNumVersionsServer) error
 	mustEmbedUnimplementedSdfsServerServer()
 }
 
@@ -188,15 +132,6 @@ func (UnimplementedSdfsServerServer) Delete(context.Context, *DeleteInput) (*Del
 }
 func (UnimplementedSdfsServerServer) Get(*GetInput, SdfsServer_GetServer) error {
 	return status.Errorf(codes.Unimplemented, "method Get not implemented")
-}
-func (UnimplementedSdfsServerServer) Ls(context.Context, *LsInput) (*LsOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ls not implemented")
-}
-func (UnimplementedSdfsServerServer) Store(context.Context, *StoreInput) (*StoreOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
-}
-func (UnimplementedSdfsServerServer) GetNumVersions(*GetNumVersionsInput, SdfsServer_GetNumVersionsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetNumVersions not implemented")
 }
 func (UnimplementedSdfsServerServer) mustEmbedUnimplementedSdfsServerServer() {}
 
@@ -276,63 +211,6 @@ func (x *sdfsServerGetServer) Send(m *GetOutput) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _SdfsServer_Ls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LsInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SdfsServerServer).Ls(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sdfs_server.SdfsServer/Ls",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SdfsServerServer).Ls(ctx, req.(*LsInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _SdfsServer_Store_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StoreInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SdfsServerServer).Store(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sdfs_server.SdfsServer/Store",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SdfsServerServer).Store(ctx, req.(*StoreInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _SdfsServer_GetNumVersions_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetNumVersionsInput)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(SdfsServerServer).GetNumVersions(m, &sdfsServerGetNumVersionsServer{stream})
-}
-
-type SdfsServer_GetNumVersionsServer interface {
-	Send(*GetNumVersionsOutput) error
-	grpc.ServerStream
-}
-
-type sdfsServerGetNumVersionsServer struct {
-	grpc.ServerStream
-}
-
-func (x *sdfsServerGetNumVersionsServer) Send(m *GetNumVersionsOutput) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 // SdfsServer_ServiceDesc is the grpc.ServiceDesc for SdfsServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -344,14 +222,6 @@ var SdfsServer_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Delete",
 			Handler:    _SdfsServer_Delete_Handler,
 		},
-		{
-			MethodName: "Ls",
-			Handler:    _SdfsServer_Ls_Handler,
-		},
-		{
-			MethodName: "Store",
-			Handler:    _SdfsServer_Store_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -362,11 +232,6 @@ var SdfsServer_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Get",
 			Handler:       _SdfsServer_Get_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetNumVersions",
-			Handler:       _SdfsServer_GetNumVersions_Handler,
 			ServerStreams: true,
 		},
 	},
