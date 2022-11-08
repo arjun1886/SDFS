@@ -63,7 +63,7 @@ func main() {
 	// UDP Server which listens for Ping
 	go Server()
 	go SdfsServer()
-	membership.UpdateFileNames()
+	sdfs_server.UpdateFileNames()
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	go sdfs_server.Replication()
 	go func() {
