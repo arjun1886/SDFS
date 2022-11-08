@@ -170,7 +170,7 @@ func DeleteAllFiles() error {
 	}
 
 	for _, file := range files {
-		err := os.Remove("../../sdfs_dir" + file.Name())
+		err := os.Remove("../../sdfs_dir/" + file.Name())
 		if err != nil {
 			return err
 		}
