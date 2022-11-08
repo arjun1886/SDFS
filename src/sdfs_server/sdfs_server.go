@@ -163,6 +163,17 @@ func Delete(fileName string) error {
 	return nil
 }
 
+func (s *SdfsServer) Delete(ctx context.Context, deleteInput *DeleteInput) (*DeleteOutput, error) {
+	err := Delete(deleteInput.GetFileName())
+	deleteOutput := DeleteOutput{}
+	if err != nil {
+		deleteOutput.Success = false
+		return &deleteOutput, errors.New("Delete Failed")
+	}
+	deleteOutput.Success = true
+	return &deleteOutput, nil
+}
+
 func DeleteAllFiles() error {
 	files, err := ioutil.ReadDir("../../sdfs_dir")
 	if err != nil {
@@ -513,7 +524,6 @@ func DeleteUtil(sdfsFileName string) error {
 					s := NewSdfsServerClient(conn)
 					deleteInput := DeleteInput{FileName: sdfsFileName}
 					deleteOutput, err = s.Delete(ctx, &deleteInput)
-
 					if err != nil {
 						deleteOutput.Success = false
 					}
