@@ -472,7 +472,7 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 				break
 			}
 			if err != nil {
-				return errors.New("failed to get file from stream")
+				return errors.New("failed to get file from stream : " + err.Error())
 			}
 
 			f, err := os.OpenFile(localFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
