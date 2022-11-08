@@ -499,6 +499,9 @@ func GetUtil(target string, localFileName string, sdfsFileName string) error {
 func DeleteUtil(sdfsFileName string) error {
 	if val, ok := membership.FileToServerMapping[sdfsFileName]; ok {
 		targetReplicas := val
+		fmt.Println("Inside Delete Util")
+		fmt.Println("Target Replicas", targetReplicas)
+		fmt.Println("file to server mapping", membership.FileToServerMapping[sdfsFileName])
 		// Channel used to store a max of 5 delete outputs
 		deleteOutputChan := make(chan DeleteOutput, 5)
 		deleteOutputList := []DeleteOutput{}
@@ -550,7 +553,7 @@ func DeleteUtil(sdfsFileName string) error {
 			return errors.New("delete Failed")
 		}
 	}
-	return nil
+	return errors.New("no files to delete")
 }
 
 func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error {
