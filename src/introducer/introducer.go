@@ -16,6 +16,7 @@ func addMember(processId string) {
 		ProcessId:         processId,
 		State:             "ACTIVE",
 		IncarnationNumber: 1,
+		FileNames:         []string{},
 	}
 	*members = append(*members, newMember)
 }

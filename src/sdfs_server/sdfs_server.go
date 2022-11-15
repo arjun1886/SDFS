@@ -64,16 +64,28 @@ func UpdateFileNames() error {
 }
 
 func (s *SdfsServer) Put(stream SdfsServer_PutServer) error {
-	req, err := stream.Recv()
-	if err == io.EOF {
-		fileObject := conf.FileData{}
-		fileObject.FileName = req.GetFileName()
-		fileObject.Data = req.GetChunk()
-		err := Put(fileObject)
-		if err != nil {
-			return nil
+	aggregated_data := []byte{}
+	filename := ""
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			fileObject := conf.FileData{}
+			fileObject.FileName = filename
+			fileObject.Data = aggregated_data
+			err := Put(fileObject)
+			if err != nil {
+				return nil
+			}
+			break
 		}
+
+		if filename == "" {
+			filename = req.GetFileName()
+		}
+		aggregated_data = append(aggregated_data, req.GetChunk()...)
+
 	}
+
 	putOutput := PutOutput{}
 	putOutput.Success = true
 	return stream.SendAndClose(&putOutput)
@@ -168,7 +180,7 @@ func (s *SdfsServer) Delete(ctx context.Context, deleteInput *DeleteInput) (*Del
 	deleteOutput := DeleteOutput{}
 	if err != nil {
 		deleteOutput.Success = false
-		return &deleteOutput, errors.New("Delete Failed")
+		return &deleteOutput, errors.New("delete Failed")
 	}
 	deleteOutput.Success = true
 	return &deleteOutput, nil
@@ -283,114 +295,239 @@ func hash(s string) uint32 {
 }
 
 func Replication() {
+
 	for {
 		time.Sleep(1 * time.Second)
 		membershipStruct := membership.Membership{}
 		members := membershipStruct.GetMembers()
-		fmt.Println("Before", membership.FileToServerMapping)
+		//fmt.Println("Before", membership.FileToServerMapping)
 		newFileToServerMapping := map[string][]string{}
 
 		for i := 0; i < len(*members); i++ {
-			fmt.Println("Entering for loop for members")
+			//fmt.Println("Entering for loop for members")
 			fileNames := (*members)[i].FileNames
 
 			for n := 0; n < len(fileNames); n++ {
+				//fmt.Println("Entering fileNames loop with:", fileNames[n])
 				fileName := strings.Split((fileNames)[n], "_")[0]
 				if val, ok := newFileToServerMapping[fileName]; !ok {
 					newVal := []string{}
 					newVal = append(newVal, (*members)[i].ProcessId)
+					//fmt.Println("inside if appending this to map:", (*members)[i].ProcessId)
 					newFileToServerMapping[fileName] = newVal
+					//fmt.Println("if map:", newFileToServerMapping[fileName])
 				} else {
-					val = append(val, (*members)[i].ProcessId)
-					newFileToServerMapping[fileName] = val
+					if !Contains(val, (*members)[i].ProcessId) {
+						val = append(val, (*members)[i].ProcessId)
+						//fmt.Println("inside else appending this to map:", (*members)[i].ProcessId)
+						newFileToServerMapping[fileName] = val
+						//fmt.Println("else map:", newFileToServerMapping[fileName])
+					}
 				}
 			}
 		}
 
 		membership.FileToServerMapping = newFileToServerMapping
-		fmt.Println("After", membership.FileToServerMapping)
-		fmt.Println("Hi", membership.FileToServerMapping)
+		//fmt.Println("After", membership.FileToServerMapping)
+		//fmt.Println("Hi", membership.FileToServerMapping)
+
 		for fileName, value := range membership.FileToServerMapping {
-			fmt.Println("Entering loop")
+			//fmt.Println("Entering loop")
 			existingReplicas := value
-			fmt.Println("Length of existing replicas:", len(existingReplicas))
-			flag := 0
-			numReplicas := len(existingReplicas)
+			targets := GetReplicaTargets(fileName)
 
-			if numReplicas == 5 {
-				fmt.Println("Already 5 replicas")
-				continue
-			}
-			requiredReplicas := 5 - numReplicas
-
-			mainReplicaIndex := hash(fileName) % uint32(len(*members))
-			fmt.Println("mainReplicaIndex", mainReplicaIndex)
-			// See if primary replica already exists
-			for i := 0; i < len(existingReplicas); i++ {
-				if mainReplicaIndex == uint32(existingReplicas[i][14]) {
-					flag = 1
-					fmt.Println("mainReplicaIndex already a replica")
-					break
-
+			for i := 0; i < len(targets); i++ {
+				if !Contains(existingReplicas, targets[i]) {
+					nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+					_ = ClearFile("dummy.txt")
+					err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+					if err != nil {
+						//fmt.Println("Error from GetUtil inside Replication")
+					}
+					err2 := PutUtil("dummy.txt", fileName, []string{targets[i]})
+					if err2 != nil {
+						//fmt.Println("Error from PutUtil inside Replication")
+					}
 				}
 			}
 
-			// If it doesn't exist, find and put in primary replica
+			/*
+				fmt.Println("Length of existing replicas:", len(existingReplicas))
+				flag := 0
+				numReplicas := len(existingReplicas)
+				hostNames := existingReplicas
 
-			if flag == 0 {
-				fmt.Println("Finding primary replica to put in")
-				for i := 0; i < len(*members); i++ {
-					if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
-						if (*members)[i].State == "ACTIVE" {
-							fmt.Println("Found active primary replica")
-							nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
-							err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
-							if err != nil {
-								fmt.Println("Error from GetUtil inside Replication")
+				if numReplicas == 5 {
+					fmt.Println("Already 5 replicas")
+					continue
+				}
+				requiredReplicas := 5 - numReplicas
+
+				mainReplicaIndex := hash(fileName) % 10
+				fmt.Println("mainReplicaIndex", mainReplicaIndex)
+				// See if primary replica already exists
+				for i := 0; i < len(existingReplicas); i++ {
+					vm, _ := strconv.Atoi(string(existingReplicas[i][14]))
+					if mainReplicaIndex == uint32(vm) {
+						flag = 1
+						fmt.Println("mainReplicaIndex already a replica")
+						break
+
+					}
+				}
+
+				// If it doesn't exist, find and put in primary replica
+
+				if flag == 0 {
+					fmt.Println("Finding primary replica to put in")
+					found := 0
+					// k := int(mainReplicaIndex)
+					for found == 0 {
+						for k := 0; k < len(*members); k++ {
+							fmt.Println("Calculated mainReplicaIndex ", int(mainReplicaIndex))
+							vm, _ := strconv.Atoi(string((*members)[k].ProcessId[14]))
+							fmt.Println("VM no:", vm)
+							if !Contains(hostNames, (*members)[k].ProcessId) &&
+								int(mainReplicaIndex) == vm && (*members)[k].State == "ACTIVE" {
+								nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+								_ = ClearFile("dummy.txt")
+								err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+								if err != nil {
+									fmt.Println("Error from GetUtil inside Replication")
+									continue
+								}
+								err2 := PutUtil("dummy.txt", fileName, []string{(*members)[k].ProcessId})
+								if err2 != nil {
+									fmt.Println("Error from PutUtil inside Replication")
+									continue
+								}
+								found = 1
+								hostNames = append(hostNames, (*members)[k].ProcessId)
+								requiredReplicas -= 1
+								break
 							}
-							err2 := PutUtil("dummy.txt", fileName, []string{(*members)[i].ProcessId})
-							if err2 != nil {
-								fmt.Println("Error from PutUtil inside Replication")
-							}
-							break
-						} else {
-							mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
+							// k = (k + 1) % len(*members)
+						}
+						if found == 0 {
+							mainReplicaIndex = (mainReplicaIndex + 1) % 10
 						}
 					}
 				}
-			}
 
-			// Linearly scan to find and put in next replicas
-			j := (int(mainReplicaIndex) + 1) % len(*members)
-			for requiredReplicas > 0 {
-				if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
-					fmt.Println("Found active replica")
-					nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
-					fmt.Println("Inside replication: length of nodeToFileArray: ", len(nodeToFileArray))
-					err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
-					if err != nil {
-						fmt.Println("Error from GetUtil inside Replication")
+				/*
+					if flag == 0 {
+						fmt.Println("Finding primary replica to put in")
+						found := 0
+						k := int(mainReplicaIndex)
+						for found == 0 {
+							fmt.Println("Calculated mainReplicaIndex ", k)
+							vm, _ := strconv.Atoi(string((*members)[k].ProcessId[14]))
+							fmt.Println("VM no:", vm)
+							if k == vm && (*members)[k].State == "ACTIVE" {
+								nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+								err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+								if err != nil {
+									fmt.Println("Error from GetUtil inside Replication")
+								}
+								err2 := PutUtil("dummy.txt", fileName, []string{(*members)[k].ProcessId})
+								if err2 != nil {
+									fmt.Println("Error from PutUtil inside Replication")
+								}
+								found = 1
+							}
+							k = (k + 1) % len(*members)
+						}
+					}*/
+			/*for i := 0; i < len(*members); i++ {
+				fmt.Println("Calculated mainReplicaIndex ", mainReplicaIndex)
+				fmt.Println("VM no:", uint32((*members)[i].ProcessId[14]))
+				if mainReplicaIndex == uint32((*members)[i].ProcessId[14]) {
+					fmt.Println("Found matching VM")
+					if (*members)[i].State == "ACTIVE" {
+						fmt.Println("Found active primary replica")
+						nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+						err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+						if err != nil {
+							fmt.Println("Error from GetUtil inside Replication")
+						}
+						err2 := PutUtil("dummy.txt", fileName, []string{(*members)[i].ProcessId})
+						if err2 != nil {
+							fmt.Println("Error from PutUtil inside Replication")
+						}
+						break
+					} else {
+						fmt.Println("Not active")
+						mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
 					}
-					err2 := PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})
-					if err2 != nil {
-						fmt.Println("Error from PutUtil inside Replication")
-					}
-					requiredReplicas -= 1
-					j = (j + 1) % len(*members)
+				} else {
+					fmt.Println("Not matching")
+					mainReplicaIndex = (mainReplicaIndex + 1) % uint32(len(*members))
 				}
-			}
+			}*/
+			/*
+				// Linearly scan to find and put in next replicas
+				j := (int(mainReplicaIndex) + 1) % len(*members)
+				for requiredReplicas > 0 {
+					if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+						fmt.Println("Found active replica")
+						nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+						fmt.Println("Inside replication: length of nodeToFileArray: ", len(nodeToFileArray))
+						err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+						if err != nil {
+							fmt.Println("Error from GetUtil inside Replication")
+						}
+						err2 := PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})
+						if err2 != nil {
+							fmt.Println("Error from PutUtil inside Replication")
+						}
+						requiredReplicas -= 1
+						j = (j + 1) % len(*members)
+					}
+				}
+			*/
+			/*
+				j := (int(mainReplicaIndex) + 1) % 10
+				for requiredReplicas > 0 {
+					for k := 0; k < len(*members); k++ {
+						fmt.Println("Calculated Index ", j)
+						vm, _ := strconv.Atoi(string((*members)[k].ProcessId[14]))
+						fmt.Println("VM no:", vm)
+						if j == vm && !Contains(hostNames, (*members)[k].ProcessId) && (*members)[k].State == "ACTIVE" {
+							fmt.Println("Found active replica")
+							nodeToFileArray := GetReadTargetsInLatestOrder(fileName, 1)
+							fmt.Println("Inside replication: length of nodeToFileArray: ", len(nodeToFileArray))
+							_ = ClearFile("dummy.txt")
+							err := GetUtil(nodeToFileArray[0].ProcessId, "dummy.txt", nodeToFileArray[0].FileVersion[0])
+							if err != nil {
+								fmt.Println("Error from GetUtil inside Replication")
+								continue
+							}
+							err2 := PutUtil("dummy.txt", fileName, []string{(*members)[j].ProcessId})
+							if err2 != nil {
+								fmt.Println("Error from PutUtil inside Replication")
+								continue
+							}
+							hostNames = append(hostNames, (*members)[k].ProcessId)
+							requiredReplicas -= 1
+							break
+						}
+					}
+					j = (j + 1) % 10
+				}
 
-			//// Update global map
-			//targets := GetReplicaTargets(fileNames[n])
-			//if len(targets) == 0 {
-			//	fmt.Println("Empty targets list")
-			//} else {
-			//	for j := 0; j < len(targets); j++ {
-			//		fmt.Println(targets[j])
-			//	}
-			//}
+				//// Update global map
+				//targets := GetReplicaTargets(fileNames[n])
+				//if len(targets) == 0 {
+				//	fmt.Println("Empty targets list")
+				//} else {
+				//	for j := 0; j < len(targets); j++ {
+				//		fmt.Println(targets[j])
+				//	}
+				//}
 
-			// newFileToServerMapping[fileName] = targets
+				// newFileToServerMapping[fileName] = targets
+
+			*/
 		}
 	}
 }
@@ -411,22 +548,115 @@ func GetReplicaTargets(file string) []string {
 	if numReplicas == 5 {
 		return hostNames
 	}
-
+	mainIndex := 0
+	if numReplicas == 0 {
+		mainIndex = (int)(hash(fileName)) % len(*members)
+	}
 	requiredReplicas := 5 - numReplicas
-	mainReplicaIndex := hash(fileName) % uint32(len(*members))
 
-	// should we check for active main replica here?
-
-	j := (int(mainReplicaIndex)) % len(*members)
+	j := mainIndex
 	for requiredReplicas > 0 {
-		fmt.Println("Entering loop")
-		if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
-			// sdfsServerStruct.put(fileName, (*members)[j])
+		if !Contains(hostNames, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
 			hostNames = append(hostNames, (*members)[j].ProcessId)
+			// fmt.Println("HostNames", hostNames)
 			requiredReplicas -= 1
+		}
+		j = (j + 1) % len(*members)
+	}
+	/*
+		requiredReplicas := 5 - numReplicas
+		// mainReplicaIndex := hash(fileName) % uint32(len(*members))
+		mainReplicaIndex := hash(fileName) % 10
+		fmt.Println("mainReplicaIndex", mainReplicaIndex)
+		flag := 0
+		// See if primary replica already exists
+		for i := 0; i < len(existingReplicas); i++ {
+			vm, _ := strconv.Atoi(string(existingReplicas[i][14]))
+			if mainReplicaIndex == uint32(vm) {
+				flag = 1
+				fmt.Println("mainReplicaIndex exists")
+				break
+			}
+		}
+
+		if flag == 0 {
+			indexHost := ""
+			newFlag := 0
+			for newFlag == 0 {
+				// Find new active primary  replica
+				for i := 0; i < len(*members); i++ {
+					vm, _ := strconv.Atoi(string((*members)[i].ProcessId[14]))
+					if mainReplicaIndex == uint32(vm) && (*members)[i].State == "ACTIVE" {
+						indexHost = (*members)[i].ProcessId
+						newFlag = 1
+						break
+					}
+				}
+				mainReplicaIndex = (mainReplicaIndex + 1) % 10
+			}
+
+			if newFlag == 1 {
+				requiredReplicas -= 1
+				hostNames = append(hostNames, indexHost)
+			}
+		}
+
+		// mainReplica guy is found
+
+		// find the next guy and then just linearly scan
+
+		nextGuyVM := (mainReplicaIndex + 1) % 10
+		nextGuyIndex := 0
+		nextGuyFlag := 0
+		for nextGuyFlag == 0 {
+			// Find new active primary  replica
+			for i := 0; i < len(*members); i++ {
+				vm, _ := strconv.Atoi(string((*members)[i].ProcessId[14]))
+				if !Contains(existingReplicas, (*members)[i].ProcessId) &&
+					nextGuyVM == uint32(vm) && (*members)[i].State == "ACTIVE" {
+					nextGuyIndex = i
+					nextGuyFlag = 1
+					break
+				}
+			}
+			nextGuyVM = (nextGuyVM + 1) % 10
+		}
+
+		j := nextGuyIndex
+		for requiredReplicas > 0 {
+			if !Contains(existingReplicas, (*members)[j].ProcessId) &&
+				!Contains(hostNames, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+				fmt.Println("Entering contains condition")
+				// sdfsServerStruct.put(fileName, (*members)[j])
+				hostNames = append(hostNames, (*members)[j].ProcessId)
+				fmt.Println("HostNames", hostNames)
+
+				requiredReplicas -= 1
+				fmt.Println("Required replicas", requiredReplicas)
+
+			}
 			j = (j + 1) % len(*members)
 		}
-	}
+
+		// should we check for active main replica here?
+		/*
+			j := (int(mainReplicaIndex)) % len(*members)
+			for requiredReplicas > 0 {
+				fmt.Println("j", j)
+				fmt.Println("Entering loop")
+				if !Contains(existingReplicas, (*members)[j].ProcessId) && (*members)[j].State == "ACTIVE" {
+					fmt.Println("Entering contains condition")
+					// sdfsServerStruct.put(fileName, (*members)[j])
+					hostNames = append(hostNames, (*members)[j].ProcessId)
+					fmt.Println("HostNames", hostNames)
+
+					requiredReplicas -= 1
+					fmt.Println("Required replicas", requiredReplicas)
+					j = (j + 1) % len(*members)
+				}
+			}
+	*/
+
 	fmt.Println("Returning replica targets ", hostNames)
 	return hostNames
 }
@@ -482,7 +712,12 @@ func GetReadTargetsInLatestOrder(file string, num int) []NodeToFiles {
 
 			nodeToFile := new(NodeToFiles)
 			nodeToFile.ProcessId = (*members)[i].ProcessId
-			nodeToFile.FileVersion = fileVersions[:num]
+			// nodeToFile.FileVersion = fileVersions[:num]
+			if num > len(fileVersions) {
+				nodeToFile.FileVersion = fileVersions
+			} else {
+				nodeToFile.FileVersion = fileVersions[:num]
+			}
 			result = append(result, *nodeToFile)
 		}
 		// highestFileVersionPerNode = append(highestFileVersionPerNode, highestFileVersion)
@@ -628,7 +863,7 @@ func PutUtil(localFileName, sdfsFileName string, targetReplicas []string) error 
 			var conn *grpc.ClientConn
 			putOutput := &PutOutput{}
 			target = strings.Split(target, ":")[0]
-			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(2000)*time.Millisecond), grpc.WithBlock())
+			conn, err := grpc.Dial(target+":8003", grpc.WithInsecure(), grpc.WithTimeout(time.Duration(5000)*time.Millisecond), grpc.WithBlock())
 			if err != nil {
 				putOutput.Success = false
 			} else {

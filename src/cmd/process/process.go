@@ -158,6 +158,7 @@ func main() {
 			var localFileName string
 			fmt.Scanf("%s%s%s", &command, &localFileName, &sdfsFileName)
 			targetReplicas := sdfs_server.GetReplicaTargets(sdfsFileName)
+			fmt.Println("target replicas ", targetReplicas)
 			err := sdfs_server.PutUtil(localFileName, sdfsFileName, targetReplicas)
 			if err != nil {
 				fmt.Println("Failed to perform put call : ", err)

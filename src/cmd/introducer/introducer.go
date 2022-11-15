@@ -4,8 +4,10 @@ import (
 	"CS425/cs-425-mp1/src/conf"
 	"CS425/cs-425-mp1/src/introducer"
 	"CS425/cs-425-mp1/src/membership"
+	"CS425/cs-425-mp1/src/sdfs_server"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc"
 	"log"
 	"net"
 	"os"
@@ -68,6 +70,14 @@ func main() {
 
 	go IntroducerServer()
 	go Server()
+	go SdfsServer()
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			sdfs_server.UpdateFileNames()
+		}
+	}()
+	go sdfs_server.Replication()
 
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	go func() {
@@ -83,6 +93,7 @@ func main() {
 						ProcessId:         hostName + ":" + strconv.FormatInt(time.Now().Unix(), 10),
 						State:             "ACTIVE",
 						IncarnationNumber: 1,
+						FileNames:         []string{},
 					}
 					*membership.Members = append(*membership.Members, initMember)
 				}
@@ -207,4 +218,20 @@ func Server() {
 		handleUDPConnection(ln)
 	}
 
+}
+
+func SdfsServer() {
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8003))
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+
+	sdfs_server.RegisterSdfsServerServer(grpcServer, &sdfs_server.SdfsServer{})
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %s", err)
+	}
 }
