@@ -9,14 +9,6 @@ Program to create a fault-tolerant distributed file service across distributed p
 - Uses streaming to transfer chunks of files across members
 - Introducer & Nodes Architecture
 
-## Notes
-
-This code builds on top of the MP2 code - the new files are inside 
-- src/sdfs_server
-- src/membership
-- src/conf
-- src/cmd/process
-
 #### Building for source
 
 
